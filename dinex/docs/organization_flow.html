@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Restaurant · Membership Flow Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <style>
+    /* smooth transitions & interactive elements */
+    .stat-card { transition: all 0.2s ease; }
+    .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px -8px rgba(180,80,30,0.12); }
+    .activity-row { transition: background 0.15s; }
+    .activity-row:hover { background: #fef3e8; }
+    .toggle-checkbox:checked + .toggle-label { background: #d97706; }
+    .toggle-checkbox:checked + .toggle-label .toggle-dot { transform: translateX(1.25rem); background: white; }
+    .toggle-dot { transition: transform 0.25s ease; }
+
+    .nav-link { transition: all 0.15s; }
+    .nav-link:hover { background: #fef3c7; color: #b45309; }
+    .nav-link.active { background: #fbbf24; color: #78350f; font-weight: 600; }
+
+    .tab-btn { transition: all 0.15s; border-bottom: 2px solid transparent; cursor: pointer; }
+    .tab-btn.active { border-bottom-color: #d97706; color: #78350f; font-weight: 600; background: #fffbeb; }
+    .tab-btn:hover:not(.active) { background: #fef3c7; border-bottom-color: #fbbf24; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    .crud-action-btn { transition: all 0.15s; opacity: 0.6; }
+    .crud-action-btn:hover { opacity: 1; transform: scale(1.1); }
+    .crud-row { transition: background 0.15s; cursor: default; }
+    .crud-row:hover { background: #fffbeb; }
+    .modal-overlay { background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); }
+    .status-toggle { cursor: pointer; }
+
+    /* membership badge */
+    .membership-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.1rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .badge-owner { background: #fef3c7; color: #92400e; }
+    .badge-admin { background: #dbeafe; color: #1e40af; }
+    .badge-manager { background: #d1fae5; color: #065f46; }
+    .badge-staff { background: #f3e8ff; color: #6b21a8; }
+
+    .entity-badge {
+      display: inline-block;
+      padding: 0.1rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge-org { background: #fef3c7; color: #92400e; }
+    .badge-user { background: #dbeafe; color: #1e40af; }
+    .badge-loc { background: #d1fae5; color: #065f46; }
+    .badge-ent { background: #fce4ec; color: #b71c1c; }
+
+    /* wizard step circles */
+    .step-circle {
+      width: 2.2rem;
+      height: 2.2rem;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      transition: all 0.3s;
+    }
+    .step-circle.active { background: #d97706; color: white; box-shadow: 0 0 0 4px #fef3c7; }
+    .step-circle.completed { background: #34d399; color: white; }
+    .step-circle.inactive { background: #e5e7eb; color: #6b7280; }
+    .step-line { flex: 1; height: 2px; background: #e5e7eb; transition: background 0.3s; }
+    .step-line.completed { background: #34d399; }
+    .wizard-step { display: none; }
+    .wizard-step.active { display: block; }
+
+    /* service toggle cards */
+    .service-card {
+      border: 2px solid #e5e7eb;
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+    .service-card.selected { border-color: #d97706; background: #fffbeb; }
+    .service-card.selected .service-icon { color: #d97706; }
+    .service-card .service-icon { color: #9ca3af; transition: color 0.15s; }
+    .service-card:hover { border-color: #fbbf24; background: #fef3c7; }
+    .service-checkbox { display: none; }
+
+    /* scrollable table container */
+    .table-wrap { overflow-x: auto; }
+    .table-wrap table { min-width: 600px; }
+
+    .membership-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: #fef3c7;
+      padding: 0.1rem 0.6rem 0.1rem 0.4rem;
+      border-radius: 9999px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: #78350f;
+      margin: 0.1rem;
+    }
+    .membership-chip .remove {
+      cursor: pointer;
+      color: #b45309;
+      font-size: 0.6rem;
+    }
+    .membership-chip .remove:hover { color: #92400e; }
+
+    .flow-diagram {
+      background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);
+    }
+  </style>
+</head>
+<body class="bg-amber-50/30 font-sans antialiased">
+
+  <!-- ===== NAVIGATION ===== -->
+  <nav class="bg-white border-b border-amber-200/70 shadow-sm sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 md:px-6">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-utensils text-amber-600 text-xl"></i>
+          <span class="text-xl font-bold text-stone-800 tracking-tight">BistroBoard</span>
+          <span class="hidden md:inline text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Membership Flow</span>
+        </div>
+        <div class="hidden md:flex items-center space-x-1">
+          <a href="#" class="nav-link active px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2"><i class="fas fa-gauge-high"></i> Dashboard</a>
+          <a href="#" class="nav-link px-4 py-2 rounded-full text-sm font-medium text-stone-600 flex items-center gap-2"><i class="fas fa-building"></i> Organizations</a>
+          <a href="#" class="nav-link px-4 py-2 rounded-full text-sm font-medium text-stone-600 flex items-center gap-2"><i class="fas fa-map-pin"></i> Locations</a>
+          <a href="#" class="nav-link px-4 py-2 rounded-full text-sm font-medium text-stone-600 flex items-center gap-2"><i class="fas fa-users"></i> Users</a>
+          <a href="#" class="nav-link px-4 py-2 rounded-full text-sm font-medium text-stone-600 flex items-center gap-2"><i class="fas fa-key"></i> Entitlements</a>
+        </div>
+        <div class="flex items-center gap-3">
+          <!-- location filter (based on user's accessible locations) -->
+          <div class="relative">
+            <select id="locationFilter" class="bg-amber-50 border border-amber-200 text-stone-700 text-sm rounded-full px-3 py-1.5 pr-8 focus:outline-none focus:ring-2 focus:ring-amber-400 appearance-none cursor-pointer">
+              <option value="all">All Locations</option>
+            </select>
+            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs pointer-events-none"></i>
+          </div>
+          <button class="relative p-2 rounded-full hover:bg-amber-50 text-stone-500 transition"><i class="fas fa-bell text-lg"></i><span class="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full border border-white"></span></button>
+          <div class="flex items-center gap-2 cursor-pointer p-1.5 pr-3 rounded-full hover:bg-amber-50 transition">
+            <div class="w-8 h-8 rounded-full bg-amber-200 flex items-center justify-center text-amber-800 font-semibold text-sm" id="currentUserAvatar">JD</div>
+            <span class="hidden sm:inline text-sm text-stone-700 font-medium" id="currentUserName">John Doe</span>
+            <i class="fas fa-chevron-down text-stone-400 text-xs"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== MAIN ===== -->
+  <div class="max-w-7xl mx-auto p-4 md:p-6">
+
+    <!-- TABS -->
+    <div class="flex flex-wrap gap-1 border-b border-amber-200/60 mb-6">
+      <button class="tab-btn active px-4 py-2 text-sm font-medium text-stone-600 rounded-t-lg" data-tab="dashboard"><i class="fas fa-chart-pie mr-1"></i> Dashboard</button>
+      <button class="tab-btn px-4 py-2 text-sm font-medium text-stone-600 rounded-t-lg" data-tab="organizations"><i class="fas fa-building mr-1"></i> Organizations</button>
+      <button class="tab-btn px-4 py-2 text-sm font-medium text-stone-600 rounded-t-lg" data-tab="locations"><i class="fas fa-map-pin mr-1"></i> Locations</button>
+      <button class="tab-btn px-4 py-2 text-sm font-medium text-stone-600 rounded-t-lg" data-tab="users"><i class="fas fa-users mr-1"></i> Users</button>
+      <button class="tab-btn px-4 py-2 text-sm font-medium text-stone-600 rounded-t-lg" data-tab="entitlements"><i class="fas fa-key mr-1"></i> Entitlements</button>
+      <button class="tab-btn px-4 py-2 text-sm font-medium text-stone-600 rounded-t-lg" data-tab="flow"><i class="fas fa-sitemap mr-1"></i> Flow Diagram</button>
+    </div>
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="tab-pane active" id="pane-dashboard">
+      <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-bold text-stone-800 tracking-tight flex items-center gap-3">
+            <i class="fas fa-utensils text-amber-600"></i> Dashboard
+          </h1>
+          <p class="text-stone-500 text-sm mt-0.5" id="dashSubtitle">All accessible locations · Real‑time overview</p>
+        </div>
+        <div class="flex items-center gap-5 bg-white px-4 py-2 rounded-full shadow-sm border border-amber-200/50">
+          <span class="text-sm font-medium text-stone-600"><i class="far fa-calendar-alt mr-1.5 text-amber-500"></i> Aug 23, 2026</span>
+          <div class="h-5 w-px bg-amber-200"></div>
+          <div class="flex items-center gap-2">
+            <i class="fas fa-sun text-amber-400 text-sm"></i>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" class="sr-only toggle-checkbox" id="themeToggle">
+              <span class="toggle-label w-10 h-5 bg-stone-300 rounded-full shadow-inner flex items-center px-0.5 transition-colors duration-300">
+                <span class="toggle-dot w-4 h-4 bg-white rounded-full shadow-sm"></span>
+              </span>
+            </label>
+            <i class="fas fa-moon text-stone-400 text-sm"></i>
+          </div>
+        </div>
+      </header>
+
+      <!-- KPI cards -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-8" id="kpiContainer">
+        <div class="stat-card bg-white rounded-2xl p-5 shadow-sm border border-amber-200/60 flex items-start justify-between">
+          <div><p class="text-sm text-stone-500 font-medium">Today's Revenue</p><p class="text-2xl font-bold text-stone-800 mt-1" id="kpiRevenue">$2,840</p><span class="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full mt-2"><i class="fas fa-arrow-up"></i> 14%</span></div>
+          <div class="bg-amber-100 p-3 rounded-xl text-amber-600"><i class="fas fa-coins text-xl"></i></div>
+        </div>
+        <div class="stat-card bg-white rounded-2xl p-5 shadow-sm border border-amber-200/60 flex items-start justify-between">
+          <div><p class="text-sm text-stone-500 font-medium">Orders</p><p class="text-2xl font-bold text-stone-800 mt-1" id="kpiOrders">187</p><span class="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full mt-2"><i class="fas fa-arrow-up"></i> 9%</span></div>
+          <div class="bg-orange-100 p-3 rounded-xl text-orange-500"><i class="fas fa-receipt text-xl"></i></div>
+        </div>
+        <div class="stat-card bg-white rounded-2xl p-5 shadow-sm border border-amber-200/60 flex items-start justify-between">
+          <div><p class="text-sm text-stone-500 font-medium">Guests served</p><p class="text-2xl font-bold text-stone-800 mt-1" id="kpiGuests">412</p><span class="inline-flex items-center gap-1 text-xs text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full mt-2"><i class="fas fa-arrow-down"></i> 3%</span></div>
+          <div class="bg-rose-100 p-3 rounded-xl text-rose-400"><i class="fas fa-user-friends text-xl"></i></div>
+        </div>
+        <div class="stat-card bg-white rounded-2xl p-5 shadow-sm border border-amber-200/60 flex items-start justify-between">
+          <div><p class="text-sm text-stone-500 font-medium">Avg. Check</p><p class="text-2xl font-bold text-stone-800 mt-1" id="kpiAvg">$15.20</p><span class="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full mt-2"><i class="fas fa-arrow-up"></i> 5%</span></div>
+          <div class="bg-amber-100 p-3 rounded-xl text-amber-500"><i class="fas fa-tag text-xl"></i></div>
+        </div>
+      </section>
+
+      <!-- chart + activity -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div class="lg:col-span-2 bg-white rounded-2xl p-5 shadow-sm border border-amber-200/60">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-semibold text-stone-700"><i class="fas fa-chart-bar text-amber-500 mr-2"></i> Top dishes <span id="chartLocationLabel">(today)</span></h2>
+          </div>
+          <div class="flex items-end justify-around h-40 pt-2" id="chartBars">
+            <div class="flex flex-col items-center gap-1.5 group"><div class="w-9 h-28 bg-amber-100 rounded-t-lg relative overflow-hidden" style="height:88px;"><div class="absolute inset-0 bg-amber-500 rounded-t-lg group-hover:bg-amber-600 transition-colors"></div></div><span class="text-xs text-stone-500">Pizza</span></div>
+            <div class="flex flex-col items-center gap-1.5 group"><div class="w-9 h-28 bg-amber-100 rounded-t-lg relative overflow-hidden" style="height:64px;"><div class="absolute inset-0 bg-amber-500 rounded-t-lg group-hover:bg-amber-600 transition-colors"></div></div><span class="text-xs text-stone-500">Pasta</span></div>
+            <div class="flex flex-col items-center gap-1.5 group"><div class="w-9 h-28 bg-amber-100 rounded-t-lg relative overflow-hidden" style="height:112px;"><div class="absolute inset-0 bg-amber-500 rounded-t-lg group-hover:bg-amber-600 transition-colors"></div></div><span class="text-xs text-stone-500">Burger</span></div>
+            <div class="flex flex-col items-center gap-1.5 group"><div class="w-9 h-28 bg-amber-100 rounded-t-lg relative overflow-hidden" style="height:76px;"><div class="absolute inset-0 bg-amber-500 rounded-t-lg group-hover:bg-amber-600 transition-colors"></div></div><span class="text-xs text-stone-500">Salad</span></div>
+            <div class="flex flex-col items-center gap-1.5 group"><div class="w-9 h-28 bg-amber-100 rounded-t-lg relative overflow-hidden" style="height:48px;"><div class="absolute inset-0 bg-amber-500 rounded-t-lg group-hover:bg-amber-600 transition-colors"></div></div><span class="text-xs text-stone-500">Soup</span></div>
+            <div class="flex flex-col items-center gap-1.5 group"><div class="w-9 h-28 bg-amber-100 rounded-t-lg relative overflow-hidden" style="height:96px;"><div class="absolute inset-0 bg-amber-500 rounded-t-lg group-hover:bg-amber-600 transition-colors"></div></div><span class="text-xs text-stone-500">Steak</span></div>
+            <div class="flex flex-col items-center gap-1.5 group"><div class="w-9 h-28 bg-amber-100 rounded-t-lg relative overflow-hidden" style="height:54px;"><div class="absolute inset-0 bg-amber-500 rounded-t-lg group-hover:bg-amber-600 transition-colors"></div></div><span class="text-xs text-stone-500">Fish</span></div>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-200/60 flex flex-col">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-semibold text-stone-700"><i class="fas fa-clock text-amber-500 mr-2"></i> Live orders</h2>
+          </div>
+          <div class="flex-1 space-y-3" id="liveOrders"></div>
+          <button class="mt-3 w-full text-sm bg-amber-50 hover:bg-amber-100 text-amber-700 font-medium py-2 rounded-xl transition flex items-center justify-center gap-2"><i class="fas fa-plus-circle text-amber-500"></i> Add order</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ORGANIZATIONS ===== -->
+    <div class="tab-pane" id="pane-organizations">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-200/60">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <h2 class="font-semibold text-stone-700 text-lg"><i class="fas fa-building text-amber-500 mr-2"></i> Organizations</h2>
+          <button id="openWizardBtn" class="bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-xl transition flex items-center gap-2 shadow-sm">
+            <i class="fas fa-magic"></i> Create Restaurant (Wizard)
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table class="w-full text-sm">
+            <thead class="text-stone-500 border-b border-stone-200">
+              <tr><th class="text-left py-2.5 font-medium">Name</th><th class="text-left py-2.5 font-medium">Members</th><th class="text-left py-2.5 font-medium">Locations</th><th class="text-left py-2.5 font-medium">Status</th><th class="text-left py-2.5 font-medium">Ready</th><th class="text-right py-2.5 font-medium">Actions</th></tr>
+            </thead>
+            <tbody id="orgTableBody" class="divide-y divide-stone-100"></tbody>
+          </table>
+        </div>
+        <p class="text-xs text-stone-400 mt-3 text-center" id="orgStatus">Click organization name to view members and locations.</p>
+      </div>
+    </div>
+
+    <!-- ===== LOCATIONS ===== -->
+    <div class="tab-pane" id="pane-locations">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-200/60">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <h2 class="font-semibold text-stone-700 text-lg"><i class="fas fa-map-pin text-amber-500 mr-2"></i> Locations</h2>
+          <button class="add-btn bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-xl transition flex items-center gap-2 shadow-sm" data-entity="location">
+            <i class="fas fa-plus-circle"></i> New Location
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table class="w-full text-sm">
+            <thead class="text-stone-500 border-b border-stone-200">
+              <tr><th class="text-left py-2.5 font-medium">Name</th><th class="text-left py-2.5 font-medium">Organization</th><th class="text-left py-2.5 font-medium">Address</th><th class="text-left py-2.5 font-medium">Assigned Users</th><th class="text-left py-2.5 font-medium">Active</th><th class="text-right py-2.5 font-medium">Actions</th></tr>
+            </thead>
+            <tbody id="locTableBody" class="divide-y divide-stone-100"></tbody>
+          </table>
+        </div>
+        <p class="text-xs text-stone-400 mt-3 text-center" id="locStatus">Manage locations and assign users via LocationMembership.</p>
+      </div>
+    </div>
+
+    <!-- ===== USERS ===== -->
+    <div class="tab-pane" id="pane-users">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-200/60">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <h2 class="font-semibold text-stone-700 text-lg"><i class="fas fa-users text-amber-500 mr-2"></i> Users</h2>
+          <button class="add-btn bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-xl transition flex items-center gap-2 shadow-sm" data-entity="user">
+            <i class="fas fa-plus-circle"></i> New User
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table class="w-full text-sm">
+            <thead class="text-stone-500 border-b border-stone-200">
+              <tr><th class="text-left py-2.5 font-medium">Name</th><th class="text-left py-2.5 font-medium">Email</th><th class="text-left py-2.5 font-medium">Organization Memberships</th><th class="text-left py-2.5 font-medium">Location Memberships</th><th class="text-left py-2.5 font-medium">Active</th><th class="text-right py-2.5 font-medium">Actions</th></tr>
+            </thead>
+            <tbody id="userTableBody" class="divide-y divide-stone-100"></tbody>
+          </table>
+        </div>
+        <p class="text-xs text-stone-400 mt-3 text-center" id="userStatus">Users belong to organizations via OrganizationMembership and to locations via LocationMembership.</p>
+      </div>
+    </div>
+
+    <!-- ===== ENTITLEMENTS ===== -->
+    <div class="tab-pane" id="pane-entitlements">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-200/60">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <h2 class="font-semibold text-stone-700 text-lg"><i class="fas fa-key text-amber-500 mr-2"></i> Entitlements (per Location)</h2>
+          <button class="add-btn bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-xl transition flex items-center gap-2 shadow-sm" data-entity="entitlement">
+            <i class="fas fa-plus-circle"></i> New Entitlement
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table class="w-full text-sm">
+            <thead class="text-stone-500 border-b border-stone-200">
+              <tr><th class="text-left py-2.5 font-medium">Location</th><th class="text-left py-2.5 font-medium">Feature</th><th class="text-left py-2.5 font-medium">Enabled</th><th class="text-right py-2.5 font-medium">Actions</th></tr>
+            </thead>
+            <tbody id="entTableBody" class="divide-y divide-stone-100"></tbody>
+          </table>
+        </div>
+        <p class="text-xs text-stone-400 mt-3 text-center" id="entStatus">Entitlements are linked to locations, not organizations.</p>
+      </div>
+    </div>
+
+    <!-- ===== FLOW DIAGRAM ===== -->
+    <div class="tab-pane" id="pane-flow">
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-amber-200/60 flow-diagram">
+        <h2 class="font-semibold text-stone-700 text-lg mb-4 flex items-center gap-2">
+          <i class="fas fa-sitemap text-amber-500"></i> Membership Flow: User → Organization → Location
+        </h2>
+        <div class="flex flex-wrap items-center justify-center gap-4 md:gap-6 py-6">
+          <div class="text-center">
+            <div class="w-24 h-24 rounded-full bg-blue-100 border-4 border-blue-500 flex items-center justify-center mx-auto shadow-md">
+              <div class="text-center"><i class="fas fa-user text-blue-600 text-2xl block"></i><span class="text-xs font-bold text-stone-700">User</span></div>
+            </div>
+            <div class="mt-2 text-xs text-stone-500">1 : Many</div>
+          </div>
+          <i class="fas fa-arrow-right text-amber-500 text-2xl hidden md:block"></i>
+          <div class="text-center">
+            <div class="w-24 h-24 rounded-full bg-amber-100 border-4 border-amber-500 flex items-center justify-center mx-auto shadow-md">
+              <div class="text-center"><i class="fas fa-handshake text-amber-600 text-2xl block"></i><span class="text-xs font-bold text-stone-700">Org Membership</span></div>
+            </div>
+            <div class="mt-2 text-xs text-stone-500">role: owner/admin/manager/staff</div>
+          </div>
+          <i class="fas fa-arrow-right text-amber-500 text-2xl hidden md:block"></i>
+          <div class="text-center">
+            <div class="w-24 h-24 rounded-full bg-amber-100 border-4 border-amber-600 flex items-center justify-center mx-auto shadow-md">
+              <div class="text-center"><i class="fas fa-building text-amber-700 text-2xl block"></i><span class="text-xs font-bold text-stone-700">Organization</span></div>
+            </div>
+            <div class="mt-2 text-xs text-stone-500">1 : Many</div>
+          </div>
+          <i class="fas fa-arrow-right text-amber-500 text-2xl hidden md:block"></i>
+          <div class="text-center">
+            <div class="w-24 h-24 rounded-full bg-emerald-100 border-4 border-emerald-500 flex items-center justify-center mx-auto shadow-md">
+              <div class="text-center"><i class="fas fa-map-pin text-emerald-600 text-2xl block"></i><span class="text-xs font-bold text-stone-700">Location Membership</span></div>
+            </div>
+            <div class="mt-2 text-xs text-stone-500">access control</div>
+          </div>
+          <i class="fas fa-arrow-right text-amber-500 text-2xl hidden md:block"></i>
+          <div class="text-center">
+            <div class="w-24 h-24 rounded-full bg-emerald-100 border-4 border-emerald-600 flex items-center justify-center mx-auto shadow-md">
+              <div class="text-center"><i class="fas fa-store text-emerald-700 text-2xl block"></i><span class="text-xs font-bold text-stone-700">Location</span></div>
+            </div>
+            <div class="mt-2 text-xs text-stone-500">restaurant</div>
+          </div>
+        </div>
+        <div class="flex flex-wrap justify-center gap-3 mt-4 pt-4 border-t border-stone-200 text-xs">
+          <span class="membership-badge badge-owner">Owner</span>
+          <span class="membership-badge badge-admin">Admin</span>
+          <span class="membership-badge badge-manager">Manager</span>
+          <span class="membership-badge badge-staff">Staff</span>
+          <span class="entity-badge badge-org">Org</span>
+          <span class="entity-badge badge-user">User</span>
+          <span class="entity-badge badge-loc">Loc</span>
+          <span class="entity-badge badge-ent">Ent</span>
+        </div>
+        <div class="mt-4 text-sm text-stone-600 bg-amber-50 rounded-xl p-3">
+          <p><strong>Key insight:</strong> Users are linked to organizations via <strong>OrganizationMembership</strong> (with a role). They are linked to locations via <strong>LocationMembership</strong> (access control). This enables:</p>
+          <ul class="list-disc list-inside mt-1 space-y-0.5">
+            <li>A user to belong to <strong>multiple organizations</strong> with different roles</li>
+            <li>Fine‑grained location access (e.g., a manager can only see their assigned locations)</li>
+            <li>Entitlements (services) are linked to <strong>locations</strong>, not organizations</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== WIZARD MODAL ===== -->
+    <div id="wizardModal" class="fixed inset-0 flex items-center justify-center z-50 modal-overlay hidden transition-opacity">
+      <div class="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-amber-200/60 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-stone-800">Create Restaurant — Wizard</h3>
+          <button id="closeWizardBtn" class="text-stone-400 hover:text-stone-600"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="flex items-center mb-2 px-2">
+          <div class="flex items-center w-full">
+            <div class="step-circle active" data-step="0">1</div><div class="step-line" data-step="0"></div>
+            <div class="step-circle inactive" data-step="1">2</div><div class="step-line" data-step="1"></div>
+            <div class="step-circle inactive" data-step="2">3</div><div class="step-line" data-step="2"></div>
+            <div class="step-circle inactive" data-step="3">4</div><div class="step-line" data-step="3"></div>
+            <div class="step-circle inactive" data-step="4">5</div>
+          </div>
+        </div>
+        <div class="flex justify-between text-xs text-stone-500 mb-6 px-1">
+          <span>Organization</span><span>User & Membership</span><span>Location</span><span>Services</span><span>Confirm</span>
+        </div>
+        <form id="wizardForm" class="space-y-4">
+          <!-- Step 0 -->
+          <div class="wizard-step active" data-step="0">
+            <h4 class="font-semibold text-stone-700 mb-2"><i class="fas fa-building text-amber-500 mr-1"></i> Organization</h4>
+            <div class="grid grid-cols-1 gap-4">
+              <div><label class="block text-sm font-medium text-stone-600">Organization Name *</label><input type="text" id="wizOrgName" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border" placeholder="e.g. Downtown Bistro" required></div>
+              <div><label class="block text-sm font-medium text-stone-600">Description</label><input type="text" id="wizOrgDesc" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border" placeholder="Brief description"></div>
+            </div>
+          </div>
+          <!-- Step 1 -->
+          <div class="wizard-step" data-step="1">
+            <h4 class="font-semibold text-stone-700 mb-2"><i class="fas fa-user-tie text-amber-500 mr-1"></i> User & Organization Membership</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><label class="block text-sm font-medium text-stone-600">Full Name *</label><input type="text" id="wizUserName" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border" placeholder="John Doe" required></div>
+              <div><label class="block text-sm font-medium text-stone-600">Email *</label><input type="email" id="wizUserEmail" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border" placeholder="john@bistro.com" required></div>
+              <div><label class="block text-sm font-medium text-stone-600">Phone</label><input type="text" id="wizUserPhone" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border" placeholder="555-0101"></div>
+              <div><label class="block text-sm font-medium text-stone-600">Role in Organization</label>
+                <select id="wizUserRole" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border">
+                  <option value="owner">Owner</option>
+                  <option value="admin">Admin</option>
+                  <option value="manager">Manager</option>
+                  <option value="staff">Staff</option>
+                </select>
+              </div>
+            </div>
+            <p class="text-xs text-stone-400 mt-2"><i class="fas fa-info-circle text-amber-400"></i> This creates a User and an OrganizationMembership linking them.</p>
+          </div>
+          <!-- Step 2 -->
+          <div class="wizard-step" data-step="2">
+            <h4 class="font-semibold text-stone-700 mb-2"><i class="fas fa-map-pin text-amber-500 mr-1"></i> Location</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><label class="block text-sm font-medium text-stone-600">Location Name *</label><input type="text" id="wizLocName" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border" placeholder="Main St" required></div>
+              <div><label class="block text-sm font-medium text-stone-600">Address *</label><input type="text" id="wizLocAddress" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border" placeholder="123 Main St" required></div>
+              <div><label class="block text-sm font-medium text-stone-600">City *</label><input type="text" id="wizLocCity" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border" placeholder="New York" required></div>
+              <div><label class="block text-sm font-medium text-stone-600">State *</label><input type="text" id="wizLocState" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border" placeholder="NY" required></div>
+              <div><label class="block text-sm font-medium text-stone-600">ZIP *</label><input type="text" id="wizLocZip" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border" placeholder="10001" required></div>
+              <div><label class="block text-sm font-medium text-stone-600">Country *</label><input type="text" id="wizLocCountry" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border" placeholder="USA" required></div>
+            </div>
+            <div class="mt-2 flex items-center gap-2 text-sm text-stone-600">
+              <input type="checkbox" id="wizAutoAssign" checked>
+              <label for="wizAutoAssign">Automatically assign this user to this location (LocationMembership)</label>
+            </div>
+          </div>
+          <!-- Step 3 -->
+          <div class="wizard-step" data-step="3">
+            <h4 class="font-semibold text-stone-700 mb-2"><i class="fas fa-key text-amber-500 mr-1"></i> Services (Entitlements)</h4>
+            <p class="text-sm text-stone-500 mb-3">Select services for this location:</p>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="serviceGrid"></div>
+          </div>
+          <!-- Step 4 -->
+          <div class="wizard-step" data-step="4">
+            <h4 class="font-semibold text-stone-700 mb-2"><i class="fas fa-check-circle text-emerald-500 mr-1"></i> Review & Create</h4>
+            <div class="bg-amber-50 p-4 rounded-xl text-sm space-y-2">
+              <p><strong>Organization:</strong> <span id="confirmOrg">—</span></p>
+              <p><strong>User:</strong> <span id="confirmUser">—</span> (<span id="confirmUserEmail">—</span>) <span class="membership-badge badge-owner" id="confirmRoleBadge">Owner</span></p>
+              <p><strong>Location:</strong> <span id="confirmLoc">—</span> (<span id="confirmLocAddr">—</span>)</p>
+              <p><strong>Services:</strong> <span id="confirmServices">—</span></p>
+              <p><strong>Location Membership:</strong> <span id="confirmMembership">—</span></p>
+            </div>
+            <div class="mt-4 flex items-center gap-2">
+              <input type="checkbox" id="wizConfirmCheck" class="rounded border-stone-300 text-amber-500 focus:ring-amber-400">
+              <label for="wizConfirmCheck" class="text-sm text-stone-600">Confirm all details are correct.</label>
+            </div>
+          </div>
+          <div class="flex justify-between pt-4 border-t border-stone-200">
+            <button type="button" id="wizPrev" class="bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium px-4 py-2 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed" disabled><i class="fas fa-arrow-left mr-1"></i> Prev</button>
+            <button type="button" id="wizNext" class="bg-amber-500 hover:bg-amber-600 text-white font-medium px-4 py-2 rounded-xl transition"><i class="fas fa-arrow-right ml-1"></i> Next</button>
+            <button type="submit" id="wizSave" class="hidden bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-4 py-2 rounded-xl transition"><i class="fas fa-save mr-1"></i> Create</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===== CRUD MODAL ===== -->
+    <div id="crudModal" class="fixed inset-0 flex items-center justify-center z-50 modal-overlay hidden transition-opacity">
+      <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-amber-200/60 transform transition-all scale-95">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-stone-800" id="modalTitle">Add</h3>
+          <button id="closeModalBtn" class="text-stone-400 hover:text-stone-600"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="crudForm" class="space-y-4">
+          <input type="hidden" id="editId" value="">
+          <input type="hidden" id="entityType" value="">
+          <div id="formFields"></div>
+          <div class="flex gap-3 pt-2">
+            <button type="submit" id="saveBtn" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-medium py-2.5 rounded-xl transition"><i class="fas fa-save mr-1"></i> Save</button>
+            <button type="button" id="cancelModalBtn" class="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium py-2.5 rounded-xl transition">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- footer -->
+    <div class="mt-8 text-center text-xs text-stone-400 border-t border-amber-200/50 pt-5 flex flex-wrap justify-center gap-4">
+      <span><i class="far fa-circle text-amber-300 mr-1"></i> Membership Flow · User → Org → Location</span>
+      <span><i class="fas fa-mouse-pointer text-stone-300 mr-1"></i> Hover cards / rows</span>
+      <span><i class="fas fa-toggle-on text-amber-400 mr-1"></i> Toggle active status</span>
+    </div>
+  </div>
+
+  <!-- ========== JAVASCRIPT ========== -->
+  <script>
+    (function() {
+      // ---------- DATA ----------
+      let users = [];
+      let organizations = [];
+      let locations = [];
+      let orgMemberships = []; // {id, userId, orgId, role, active}
+      let locMemberships = []; // {id, userId, locationId, active}
+      let entitlements = []; // {id, locationId, feature, enabled}
+      let nextId = { user: 1, org: 1, loc: 1, om: 1, lm: 1, ent: 1 };
+
+      const SERVICES = [
+        { key: 'pos', label: 'POS', icon: 'fa-cash-register' },
+        { key: 'inventory', label: 'Inventory', icon: 'fa-boxes' },
+        { key: 'table_mgmt', label: 'Table Management', icon: 'fa-table' },
+        { key: 'online_ordering', label: 'Online Ordering', icon: 'fa-mobile-alt' },
+        { key: 'employee_scheduling', label: 'Employee Scheduling', icon: 'fa-calendar-alt' },
+        { key: 'loyalty', label: 'Loyalty', icon: 'fa-star' },
+        { key: 'reporting', label: 'Reporting', icon: 'fa-chart-pie' },
+      ];
+
+      const ROLE_COLORS = { owner: 'badge-owner', admin: 'badge-admin', manager: 'badge-manager', staff: 'badge-staff' };
+
+      // ---------- HELPERS ----------
+      function getNextId(type) {
+        return nextId[type]++;
+      }
+
+      function getUser(id) { return users.find(u => u.id === id); }
+      function getOrg(id) { return organizations.find(o => o.id === id); }
+      function getLoc(id) { return locations.find(l => l.id === id); }
+
+      function getOrgMembershipsForUser(userId) {
+        return orgMemberships.filter(om => om.userId === userId && om.active);
+      }
+      function getLocMembershipsForUser(userId) {
+        return locMemberships.filter(lm => lm.userId === userId && lm.active);
+      }
+      function getLocationsForUser(userId) {
+        const locIds = getLocMembershipsForUser(userId).map(lm => lm.locationId);
+        return locations.filter(l => locIds.includes(l.id));
+      }
+      function getOrgsForUser(userId) {
+        const orgIds = getOrgMembershipsForUser(userId).map(om => om.orgId);
+        return organizations.filter(o => orgIds.includes(o.id));
+      }
+
+      // ---------- RENDER ----------
+      function renderOrganizations() {
+        const tbody = document.getElementById('orgTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        organizations.forEach(org => {
+          const members = orgMemberships.filter(om => om.orgId === org.id && om.active);
+          const locs = locations.filter(l => l.organizationId === org.id);
+          const row = document.createElement('tr');
+          row.className = 'crud-row';
+          row.innerHTML = `
+            <td class="py-2.5 font-medium text-stone-700">${org.name}</td>
+            <td class="text-stone-600">${members.length}</td>
+            <td class="text-stone-600">${locs.length}</td>
+            <td><span class="status-toggle inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${org.active ? 'bg-emerald-50 text-emerald-600' : 'bg-stone-100 text-stone-500'}" data-entity="organization" data-id="${org.id}" data-field="active">${org.active ? 'Active' : 'Inactive'}</span></td>
+            <td><span class="status-toggle inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${org.ready ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-500'}" data-entity="organization" data-id="${org.id}" data-field="ready">${org.ready ? '✅ Ready' : '⏳ Not Ready'}</span></td>
+            <td class="text-right">
+              <button class="crud-action-btn text-amber-500 hover:text-amber-700 mr-2 edit-btn" data-entity="organization" data-id="${org.id}" title="Edit"><i class="fas fa-pen"></i></button>
+              <button class="crud-action-btn text-rose-400 hover:text-rose-600 delete-btn" data-entity="organization" data-id="${org.id}" title="Delete"><i class="fas fa-trash-can"></i></button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+        attachStatusToggles();
+        attachEditDeleteButtons();
+        document.getElementById('orgStatus').textContent = `${organizations.length} organizations.`;
+        updateDashboardStats();
+        updateLocationFilter();
+      }
+
+      function renderLocations() {
+        const tbody = document.getElementById('locTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        locations.forEach(loc => {
+          const org = getOrg(loc.organizationId);
+          const assigned = locMemberships.filter(lm => lm.locationId === loc.id && lm.active);
+          const userNames = assigned.map(lm => getUser(lm.userId)?.name).filter(Boolean).join(', ') || 'None';
+          const row = document.createElement('tr');
+          row.className = 'crud-row';
+          row.innerHTML = `
+            <td class="py-2.5 font-medium text-stone-700">${loc.name}</td>
+            <td class="text-stone-600">${org ? org.name : '—'}</td>
+            <td class="text-stone-600">${loc.address}</td>
+            <td class="text-stone-600 text-xs">${userNames}</td>
+            <td><span class="status-toggle inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${loc.active ? 'bg-emerald-50 text-emerald-600' : 'bg-stone-100 text-stone-500'}" data-entity="location" data-id="${loc.id}" data-field="active">${loc.active ? 'Active' : 'Inactive'}</span></td>
+            <td class="text-right">
+              <button class="crud-action-btn text-amber-500 hover:text-amber-700 mr-2 edit-btn" data-entity="location" data-id="${loc.id}" title="Edit"><i class="fas fa-pen"></i></button>
+              <button class="crud-action-btn text-rose-400 hover:text-rose-600 delete-btn" data-entity="location" data-id="${loc.id}" title="Delete"><i class="fas fa-trash-can"></i></button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+        attachStatusToggles();
+        attachEditDeleteButtons();
+        document.getElementById('locStatus').textContent = `${locations.length} locations.`;
+        updateDashboardStats();
+        updateLocationFilter();
+      }
+
+      function renderUsers() {
+        const tbody = document.getElementById('userTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        users.forEach(user => {
+          const om = getOrgMembershipsForUser(user.id);
+          const lm = getLocMembershipsForUser(user.id);
+          const orgNames = om.map(m => getOrg(m.orgId)?.name).filter(Boolean).join(', ') || 'None';
+          const locNames = lm.map(m => getLoc(m.locationId)?.name).filter(Boolean).join(', ') || 'None';
+          const row = document.createElement('tr');
+          row.className = 'crud-row';
+          row.innerHTML = `
+            <td class="py-2.5 font-medium text-stone-700">${user.name}</td>
+            <td class="text-stone-600">${user.email}</td>
+            <td class="text-stone-600 text-xs">${orgNames}</td>
+            <td class="text-stone-600 text-xs">${locNames}</td>
+            <td><span class="status-toggle inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${user.active ? 'bg-emerald-50 text-emerald-600' : 'bg-stone-100 text-stone-500'}" data-entity="user" data-id="${user.id}" data-field="active">${user.active ? 'Active' : 'Inactive'}</span></td>
+            <td class="text-right">
+              <button class="crud-action-btn text-amber-500 hover:text-amber-700 mr-2 edit-btn" data-entity="user" data-id="${user.id}" title="Edit"><i class="fas fa-pen"></i></button>
+              <button class="crud-action-btn text-rose-400 hover:text-rose-600 delete-btn" data-entity="user" data-id="${user.id}" title="Delete"><i class="fas fa-trash-can"></i></button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+        attachStatusToggles();
+        attachEditDeleteButtons();
+        document.getElementById('userStatus').textContent = `${users.length} users.`;
+        updateDashboardStats();
+        updateLocationFilter();
+      }
+
+      function renderEntitlements() {
+        const tbody = document.getElementById('entTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        entitlements.forEach(ent => {
+          const loc = getLoc(ent.locationId);
+          const row = document.createElement('tr');
+          row.className = 'crud-row';
+          row.innerHTML = `
+            <td class="py-2.5 font-medium text-stone-700">${loc ? loc.name : '—'}</td>
+            <td class="text-stone-600">${ent.feature}</td>
+            <td><span class="status-toggle inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${ent.enabled ? 'bg-emerald-50 text-emerald-600' : 'bg-stone-100 text-stone-500'}" data-entity="entitlement" data-id="${ent.id}" data-field="enabled">${ent.enabled ? 'Enabled' : 'Disabled'}</span></td>
+            <td class="text-right">
+              <button class="crud-action-btn text-amber-500 hover:text-amber-700 mr-2 edit-btn" data-entity="entitlement" data-id="${ent.id}" title="Edit"><i class="fas fa-pen"></i></button>
+              <button class="crud-action-btn text-rose-400 hover:text-rose-600 delete-btn" data-entity="entitlement" data-id="${ent.id}" title="Delete"><i class="fas fa-trash-can"></i></button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+        attachStatusToggles();
+        attachEditDeleteButtons();
+        document.getElementById('entStatus').textContent = `${entitlements.length} entitlements.`;
+        updateDashboardStats();
+      }
+
+      function updateDashboardStats() {
+        document.getElementById('dashOrgCount')?.parentElement?.parentElement?.querySelector('.text-2xl')?.replaceWith(
+          document.createTextNode(organizations.length)
+        );
+        // simple updates
+        const statTitles = ['Organizations', 'Locations', 'Users', 'Entitlements'];
+        const counts = [organizations.length, locations.length, users.length, entitlements.length];
+        const cards = document.querySelectorAll('#kpiContainer .stat-card');
+        // update dashboard summary cards (quick hack)
+        const dashCounts = document.querySelectorAll('#pane-dashboard .stat-card .text-2xl');
+        if (dashCounts.length >= 4) {
+          // we'll update the numbers in the dashboard KPI cards dynamically via location filter
+        }
+        document.getElementById('dashOrgCount').textContent = organizations.length;
+        document.getElementById('dashLocCount').textContent = locations.length;
+        document.getElementById('dashOwnerCount').textContent = users.length;
+        document.getElementById('dashEntCount').textContent = entitlements.length;
+      }
+
+      function updateLocationFilter() {
+        const select = document.getElementById('locationFilter');
+        const currentVal = select.value;
+        select.innerHTML = '<option value="all">All Locations</option>';
+        locations.forEach(loc => {
+          const option = document.createElement('option');
+          option.value = loc.id;
+          option.textContent = loc.name;
+          select.appendChild(option);
+        });
+        if (currentVal && [...select.options].some(o => o.value === currentVal)) {
+          select.value = currentVal;
+        } else {
+          select.value = 'all';
+        }
+        updateDashboardByLocation(select.value);
+      }
+
+      // ---------- DASHBOARD ----------
+      function updateDashboardByLocation(locationId) {
+        let stats = { revenue: 2840, orders: 187, guests: 412, avg: 15.20 };
+        let label = 'All Locations';
+        if (locationId !== 'all') {
+          const loc = getLoc(parseInt(locationId));
+          if (loc) {
+            const seed = loc.id * 100;
+            stats = {
+              revenue: 1500 + seed % 3000,
+              orders: 80 + seed % 120,
+              guests: 150 + seed % 250,
+              avg: (12 + (seed % 10) + (seed % 5) / 10).toFixed(2),
+            };
+            label = loc.name;
+            document.getElementById('dashSubtitle').textContent = `${label} · Real‑time overview`;
+            document.getElementById('chartLocationLabel').textContent = `(${label})`;
+          }
+        } else {
+          document.getElementById('dashSubtitle').textContent = 'All accessible locations · Real‑time overview';
+          document.getElementById('chartLocationLabel').textContent = '(all locations)';
+        }
+        document.getElementById('kpiRevenue').textContent = '$' + stats.revenue.toLocaleString();
+        document.getElementById('kpiOrders').textContent = stats.orders;
+        document.getElementById('kpiGuests').textContent = stats.guests;
+        document.getElementById('kpiAvg').textContent = '$' + stats.avg;
+
+        // random chart bars
+        document.querySelectorAll('#chartBars .relative').forEach(el => {
+          const h = Math.floor(Math.random() * 100) + 30;
+          el.style.height = h + 'px';
+        });
+
+        // live orders
+        const container = document.getElementById('liveOrders');
+        if (container) {
+          const statuses = ['ready', 'preparing', 'delayed', 'pending'];
+          const items = ['Pizza', 'Pasta', 'Steak', 'Salad', 'Burger', 'Soup'];
+          let html = '';
+          for (let i = 0; i < 4; i++) {
+            const status = statuses[Math.floor(Math.random() * statuses.length)];
+            const item = items[Math.floor(Math.random() * items.length)];
+            const color = status === 'ready' ? 'emerald' : status === 'preparing' ? 'amber' : status === 'delayed' ? 'rose' : 'indigo';
+            const icon = status === 'ready' ? 'check' : status === 'preparing' ? 'hourglass-half' : status === 'delayed' ? 'clock' : 'plus';
+            html += `
+              <div class="activity-row flex items-center gap-3 p-2 -mx-2 rounded-lg cursor-default">
+                <div class="w-8 h-8 rounded-full bg-${color}-100 text-${color}-600 flex items-center justify-center"><i class="fas fa-${icon} text-xs"></i></div>
+                <div class="flex-1"><p class="text-sm font-medium text-stone-700">Table #${Math.floor(Math.random()*20)+1} · ${item}</p><p class="text-xs text-stone-400">${Math.floor(Math.random()*30)+1} min ago</p></div>
+                <span class="text-xs font-medium text-${color}-600 bg-${color}-50 px-2 py-0.5 rounded-full">${status}</span>
+              </div>
+            `;
+          }
+          container.innerHTML = html;
+        }
+      }
+
+      // ---------- ATTACH ----------
+      function attachStatusToggles() {
+        document.querySelectorAll('.status-toggle').forEach(el => {
+          el.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const entity = this.dataset.entity;
+            const id = parseInt(this.dataset.id);
+            const field = this.dataset.field;
+            let list;
+            if (entity === 'organization') list = organizations;
+            else if (entity === 'location') list = locations;
+            else if (entity === 'user') list = users;
+            else if (entity === 'entitlement') list = entitlements;
+            else return;
+            const item = list.find(i => i.id === id);
+            if (!item) return;
+            item[field] = !item[field];
+            renderAll();
+          });
+        });
+      }
+
+      function attachEditDeleteButtons() {
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const entity = this.dataset.entity;
+            const id = parseInt(this.dataset.id);
+            openEditModal(entity, id);
+          });
+        });
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const entity = this.dataset.entity;
+            const id = parseInt(this.dataset.id);
+            if (confirm(`Delete this ${entity}?`)) {
+              deleteEntity(entity, id);
+            }
+          });
+        });
+      }
+
+      // ---------- CRUD ----------
+      function deleteEntity(type, id) {
+        let list;
+        if (type === 'organization') list = organizations;
+        else if (type === 'location') list = locations;
+        else if (type === 'user') list = users;
+        else if (type === 'entitlement') list = entitlements;
+        else return;
+        const idx = list.findIndex(i => i.id === id);
+        if (idx === -1) return;
+        list.splice(idx, 1);
+        renderAll();
+        const statusEl = document.getElementById(`${type}Status`);
+        if (statusEl) statusEl.textContent = `🗑️ Deleted.`;
+        setTimeout(() => renderAll(), 1500);
+      }
+
+      function openEditModal(type, id) {
+        let list, item;
+        if (type === 'organization') { list = organizations; item = list.find(i => i.id === id); }
+        else if (type === 'location') { list = locations; item = list.find(i => i.id === id); }
+        else if (type === 'user') { list = users; item = list.find(i => i.id === id); }
+        else if (type === 'entitlement') { list = entitlements; item = list.find(i => i.id === id); }
+        else return;
+        if (!item) return;
+        const modal = document.getElementById('crudModal');
+        const title = document.getElementById('modalTitle');
+        const entityType = document.getElementById('entityType');
+        const editId = document.getElementById('editId');
+        const formFields = document.getElementById('formFields');
+        entityType.value = type;
+        editId.value = id;
+        title.textContent = `Edit ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+        formFields.innerHTML = buildFormFields(type, item);
+        modal.classList.remove('hidden');
+        // populate dropdowns
+        if (type === 'organization') {
+          populateDropdown('orgOwner', users, 'id', 'name', item.ownerId);
+        }
+        if (type === 'location') {
+          populateDropdown('locOrganization', organizations, 'id', 'name', item.organizationId);
+        }
+        if (type === 'user') {
+          populateDropdown('userOrg', organizations, 'id', 'name', item.organizationId);
+        }
+        if (type === 'entitlement') {
+          populateDropdown('entLocation', locations, 'id', 'name', item.locationId);
+        }
+        modal.querySelector('.scale-95').classList.add('scale-100');
+      }
+
+      function populateDropdown(selectId, options, valueKey, labelKey, selectedValue) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+        select.innerHTML = '';
+        options.forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt[valueKey];
+          option.textContent = opt[labelKey];
+          if (opt[valueKey] === selectedValue) option.selected = true;
+          select.appendChild(option);
+        });
+      }
+
+      function buildFormFields(type, data) {
+        let html = '';
+        if (type === 'organization') {
+          html = `
+            <div><label class="block text-sm font-medium text-stone-600">Name</label><input type="text" id="orgName" value="${data.name}" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border" required></div>
+            <div><label class="block text-sm font-medium text-stone-600">Description</label><input type="text" id="orgDesc" value="${data.description || ''}" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border"></div>
+            <div><label class="block text-sm font-medium text-stone-600">Owner (User ID)</label><select id="orgOwner" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border"></select></div>
+            <div class="flex items-center gap-4"><label class="block text-sm font-medium text-stone-600">Active</label><input type="checkbox" id="orgActive" ${data.active ? 'checked' : ''} class="rounded border-stone-300 text-amber-500 focus:ring-amber-400"></div>
+            <div class="flex items-center gap-4"><label class="block text-sm font-medium text-stone-600">Ready</label><input type="checkbox" id="orgReady" ${data.ready ? 'checked' : ''} class="rounded border-stone-300 text-amber-500 focus:ring-amber-400"></div>
+          `;
+        } else if (type === 'location') {
+          html = `
+            <div><label class="block text-sm font-medium text-stone-600">Name</label><input type="text" id="locName" value="${data.name}" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border" required></div>
+            <div><label class="block text-sm font-medium text-stone-600">Address</label><input type="text" id="locAddress" value="${data.address}" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border" required></div>
+            <div><label class="block text-sm font-medium text-stone-600">City</label><input type="text" id="locCity" value="${data.city}" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border" required></div>
+            <div><label class="block text-sm font-medium text-stone-600">Organization</label><select id="locOrganization" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border"></select></div>
+            <div class="flex items-center gap-4"><label class="block text-sm font-medium text-stone-600">Active</label><input type="checkbox" id="locActive" ${data.active ? 'checked' : ''} class="rounded border-stone-300 text-amber-500 focus:ring-amber-400"></div>
+          `;
+        } else if (type === 'user') {
+          html = `
+            <div><label class="block text-sm font-medium text-stone-600">Name</label><input type="text" id="userName" value="${data.name}" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border" required></div>
+            <div><label class="block text-sm font-medium text-stone-600">Email</label><input type="email" id="userEmail" value="${data.email}" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border" required></div>
+            <div><label class="block text-sm font-medium text-stone-600">Phone</label><input type="text" id="userPhone" value="${data.phone || ''}" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border"></div>
+            <div class="flex items-center gap-4"><label class="block text-sm font-medium text-stone-600">Active</label><input type="checkbox" id="userActive" ${data.active ? 'checked' : ''} class="rounded border-stone-300 text-amber-500 focus:ring-amber-400"></div>
+          `;
+        } else if (type === 'entitlement') {
+          html = `
+            <div><label class="block text-sm font-medium text-stone-600">Location</label><select id="entLocation" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border"></select></div>
+            <div><label class="block text-sm font-medium text-stone-600">Feature</label>
+              <select id="entFeature" class="mt-1 w-full rounded-xl border-stone-300 shadow-sm focus:border-amber-400 focus:ring-amber-400 text-sm py-2 px-3 border">
+                ${SERVICES.map(s => `<option value="${s.key}" ${data.feature === s.key ? 'selected' : ''}>${s.label}</option>`).join('')}
+              </select>
+            </div>
+            <div class="flex items-center gap-4"><label class="block text-sm font-medium text-stone-600">Enabled</label><input type="checkbox" id="entEnabled" ${data.enabled ? 'checked' : ''} class="rounded border-stone-300 text-amber-500 focus:ring-amber-400"></div>
+          `;
+        }
+        return html;
+      }
+
+      // ---------- WIZARD ----------
+      let currentStep = 0;
+      const totalSteps = 5;
+
+      function buildServiceCards() {
+        const grid = document.getElementById('serviceGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        SERVICES.forEach(service => {
+          const card = document.createElement('div');
+          card.className = 'service-card p-3 rounded-xl text-center cursor-pointer';
+          card.dataset.key = service.key;
+          card.innerHTML = `
+            <i class="fas ${service.icon} service-icon text-2xl mb-1 block"></i>
+            <span class="text-sm font-medium text-stone-700">${service.label}</span>
+            <input type="checkbox" class="service-checkbox" value="${service.key}" checked>
+          `;
+          card.addEventListener('click', function() {
+            const cb = this.querySelector('.service-checkbox');
+            cb.checked = !cb.checked;
+            this.classList.toggle('selected', cb.checked);
+          });
+          card.classList.add('selected');
+          grid.appendChild(card);
+        });
+      }
+
+      function updateWizardUI() {
+        document.querySelectorAll('.step-circle').forEach(el => {
+          const step = parseInt(el.dataset.step);
+          el.classList.remove('active', 'completed', 'inactive');
+          if (step < currentStep) el.classList.add('completed');
+          else if (step === currentStep) el.classList.add('active');
+          else el.classList.add('inactive');
+        });
+        document.querySelectorAll('.step-line').forEach(el => {
+          const step = parseInt(el.dataset.step);
+          el.classList.toggle('completed', step < currentStep);
+        });
+        document.querySelectorAll('.wizard-step').forEach(el => {
+          const step = parseInt(el.dataset.step);
+          el.classList.toggle('active', step === currentStep);
+        });
+        document.getElementById('wizPrev').disabled = (currentStep === 0);
+        document.getElementById('wizNext').classList.toggle('hidden', currentStep === totalSteps - 1);
+        document.getElementById('wizSave').classList.toggle('hidden', currentStep !== totalSteps - 1);
+        if (currentStep === totalSteps - 1) updateConfirmStep();
+      }
+
+      function updateConfirmStep() {
+        document.getElementById('confirmOrg').textContent = document.getElementById('wizOrgName').value || '—';
+        document.getElementById('confirmUser').textContent = document.getElementById('wizUserName').value || '—';
+        document.getElementById('confirmUserEmail').textContent = document.getElementById('wizUserEmail').value || '—';
+        const role = document.getElementById('wizUserRole').value;
+        document.getElementById('confirmRoleBadge').textContent = role.charAt(0).toUpperCase() + role.slice(1);
+        document.getElementById('confirmRoleBadge').className = `membership-badge ${ROLE_COLORS[role] || 'badge-staff'}`;
+        document.getElementById('confirmLoc').textContent = document.getElementById('wizLocName').value || '—';
+        document.getElementById('confirmLocAddr').textContent = document.getElementById('wizLocAddress').value || '—';
+        const selected = Array.from(document.querySelectorAll('.service-checkbox:checked')).map(cb => cb.value);
+        const labels = SERVICES.filter(s => selected.includes(s.key)).map(s => s.label);
+        document.getElementById('confirmServices').textContent = labels.length ? labels.join(', ') : 'None';
+        document.getElementById('confirmMembership').textContent = document.getElementById('wizAutoAssign').checked ? '✅ User will be assigned to this location' : '❌ No location membership created';
+      }
+
+      function validateStep(step) {
+        if (step === 0) {
+          if (!document.getElementById('wizOrgName').value.trim()) { alert('Organization name required.'); return false; }
+          return true;
+        }
+        if (step === 1) {
+          if (!document.getElementById('wizUserName').value.trim()) { alert('User name required.'); return false; }
+          if (!document.getElementById('wizUserEmail').value.trim()) { alert('User email required.'); return false; }
+          return true;
+        }
+        if (step === 2) {
+          if (!document.getElementById('wizLocName').value.trim()) { alert('Location name required.'); return false; }
+          if (!document.getElementById('wizLocAddress').value.trim()) { alert('Address required.'); return false; }
+          if (!document.getElementById('wizLocCity').value.trim()) { alert('City required.'); return false; }
+          return true;
+        }
+        if (step === 3) return true;
+        if (step === 4) {
+          if (!document.getElementById('wizConfirmCheck').checked) { alert('Please confirm details.'); return false; }
+          return true;
+        }
+        return true;
+      }
+
+      function goToStep(step) {
+        if (step < 0 || step >= totalSteps) return;
+        if (step > currentStep) {
+          if (!validateStep(currentStep)) return;
+        }
+        currentStep = step;
+        updateWizardUI();
+      }
+
+      function nextStep() { if (currentStep < totalSteps - 1) goToStep(currentStep + 1); }
+      function prevStep() { if (currentStep > 0) goToStep(currentStep - 1); }
+
+      function saveWizard() {
+        if (!validateStep(4)) return;
+
+        const orgName = document.getElementById('wizOrgName').value.trim();
+        const orgDesc = document.getElementById('wizOrgDesc').value.trim();
+        const userName = document.getElementById('wizUserName').value.trim();
+        const userEmail = document.getElementById('wizUserEmail').value.trim();
+        const userPhone = document.getElementById('wizUserPhone').value.trim();
+        const userRole = document.getElementById('wizUserRole').value;
+        const locName = document.getElementById('wizLocName').value.trim();
+        const locAddress = document.getElementById('wizLocAddress').value.trim();
+        const locCity = document.getElementById('wizLocCity').value.trim();
+        const locState = document.getElementById('wizLocState').value.trim();
+        const locZip = document.getElementById('wizLocZip').value.trim();
+        const locCountry = document.getElementById('wizLocCountry').value.trim();
+        const autoAssign = document.getElementById('wizAutoAssign').checked;
+        const selectedServices = Array.from(document.querySelectorAll('.service-checkbox:checked')).map(cb => cb.value);
+
+        // 1. Create User
+        const newUser = { id: getNextId('user'), name: userName, email: userEmail, phone: userPhone, active: true };
+        users.push(newUser);
+
+        // 2. Create Organization
+        const newOrg = { id: getNextId('org'), name: orgName, description: orgDesc, ownerId: newUser.id, active: true, ready: true };
+        organizations.push(newOrg);
+
+        // 3. Create OrganizationMembership (owner)
+        orgMemberships.push({ id: getNextId('om'), userId: newUser.id, orgId: newOrg.id, role: userRole, active: true });
+
+        // 4. Create Location
+        const newLoc = { id: getNextId('loc'), name: locName, address: locAddress, city: locCity, state: locState, zip: locZip, country: locCountry, active: true, organizationId: newOrg.id };
+        locations.push(newLoc);
+
+        // 5. Create LocationMembership (if auto-assign)
+        if (autoAssign) {
+          locMemberships.push({ id: getNextId('lm'), userId: newUser.id, locationId: newLoc.id, active: true });
+        }
+
+        // 6. Create Entitlements for this location
+        selectedServices.forEach(serviceKey => {
+          const label = SERVICES.find(s => s.key === serviceKey)?.label || serviceKey;
+          entitlements.push({ id: getNextId('ent'), locationId: newLoc.id, feature: label, enabled: true });
+        });
+
+        closeWizard();
+        renderAll();
+        alert(`✅ Restaurant "${orgName}" created!\nUser "${userName}" is ${autoAssign ? 'assigned' : 'not assigned'} to the location.`);
+      }
+
+      function openWizard() {
+        document.getElementById('wizardModal').classList.remove('hidden');
+        document.getElementById('wizardForm').reset();
+        document.getElementById('wizConfirmCheck').checked = false;
+        document.querySelectorAll('.service-checkbox').forEach(cb => cb.checked = true);
+        document.querySelectorAll('.service-card').forEach(card => card.classList.add('selected'));
+        document.getElementById('wizAutoAssign').checked = true;
+        currentStep = 0;
+        updateWizardUI();
+      }
+
+      function closeWizard() {
+        document.getElementById('wizardModal').classList.add('hidden');
+      }
+
+      // ---------- CRUD FORM SUBMIT ----------
+      document.getElementById('crudForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const type = document.getElementById('entityType').value;
+        const id = parseInt(document.getElementById('editId').value);
+        let data = {};
+        let list;
+
+        if (type === 'organization') {
+          list = organizations;
+          data = {
+            name: document.getElementById('orgName').value.trim(),
+            description: document.getElementById('orgDesc').value.trim(),
+            ownerId: parseInt(document.getElementById('orgOwner').value),
+            active: document.getElementById('orgActive').checked,
+            ready: document.getElementById('orgReady').checked,
+          };
+          if (!data.name) { alert('Name required'); return; }
+        } else if (type === 'location') {
+          list = locations;
+          data = {
+            name: document.getElementById('locName').value.trim(),
+            address: document.getElementById('locAddress').value.trim(),
+            city: document.getElementById('locCity').value.trim(),
+            organizationId: parseInt(document.getElementById('locOrganization').value),
+            active: document.getElementById('locActive').checked,
+          };
+          if (!data.name) { alert('Name required'); return; }
+        } else if (type === 'user') {
+          list = users;
+          data = {
+            name: document.getElementById('userName').value.trim(),
+            email: document.getElementById('userEmail').value.trim(),
+            phone: document.getElementById('userPhone').value.trim(),
+            active: document.getElementById('userActive').checked,
+          };
+          if (!data.name) { alert('Name required'); return; }
+        } else if (type === 'entitlement') {
+          list = entitlements;
+          data = {
+            locationId: parseInt(document.getElementById('entLocation').value),
+            feature: document.getElementById('entFeature').value,
+            enabled: document.getElementById('entEnabled').checked,
+          };
+        } else { return; }
+
+        if (id) {
+          const idx = list.findIndex(i => i.id === id);
+          if (idx !== -1) list[idx] = { ...list[idx], ...data };
+        } else {
+          const newId = getNextId(type === 'organization' ? 'org' : type === 'location' ? 'loc' : type === 'user' ? 'user' : 'ent');
+          data.id = newId;
+          list.push(data);
+        }
+        closeModal();
+        renderAll();
+        const statusEl = document.getElementById(`${type}Status`);
+        if (statusEl) statusEl.textContent = `✅ ${id ? 'Updated' : 'Created'} ${type}.`;
+        setTimeout(() => renderAll(), 1500);
+      });
+
+      // ---------- MODAL CONTROLS ----------
+      function openCreateModal(type) {
+        const modal = document.getElementById('crudModal');
+        const title = document.getElementById('modalTitle');
+        const entityType = document.getElementById('entityType');
+        const editId = document.getElementById('editId');
+        const formFields = document.getElementById('formFields');
+
+        entityType.value = type;
+        editId.value = '';
+        title.textContent = `Add ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+        let emptyData = {};
+        if (type === 'organization') emptyData = { name: '', description: '', ownerId: users.length ? users[0].id : 0, active: true, ready: false };
+        else if (type === 'location') emptyData = { name: '', address: '', city: '', organizationId: organizations.length ? organizations[0].id : 0, active: true };
+        else if (type === 'user') emptyData = { name: '', email: '', phone: '', active: true };
+        else if (type === 'entitlement') emptyData = { locationId: locations.length ? locations[0].id : 0, feature: SERVICES[0].key, enabled: true };
+        formFields.innerHTML = buildFormFields(type, emptyData);
+        if (type === 'organization') populateDropdown('orgOwner', users, 'id', 'name', users.length ? users[0].id : 0);
+        if (type === 'location') populateDropdown('locOrganization', organizations, 'id', 'name', organizations.length ? organizations[0].id : 0);
+        if (type === 'entitlement') populateDropdown('entLocation', locations, 'id', 'name', locations.length ? locations[0].id : 0);
+        modal.classList.remove('hidden');
+        modal.querySelector('.scale-95').classList.add('scale-100');
+      }
+
+      function closeModal() {
+        document.getElementById('crudModal').classList.add('hidden');
+        document.getElementById('crudForm').reset();
+        document.getElementById('editId').value = '';
+      }
+
+      // ---------- TAB SWITCHING ----------
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          const tab = this.dataset.tab;
+          document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+          document.getElementById(`pane-${tab}`).classList.add('active');
+        });
+      });
+
+      // ---------- EVENT BINDINGS ----------
+      document.getElementById('openWizardBtn').addEventListener('click', openWizard);
+      document.getElementById('closeWizardBtn').addEventListener('click', closeWizard);
+      document.getElementById('wizardModal').addEventListener('click', function(e) {
+        if (e.target === this) closeWizard();
+      });
+      document.getElementById('wizPrev').addEventListener('click', prevStep);
+      document.getElementById('wizNext').addEventListener('click', nextStep);
+      document.getElementById('wizSave').addEventListener('click', function(e) {
+        e.preventDefault();
+        saveWizard();
+      });
+
+      document.querySelectorAll('.add-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          openCreateModal(this.dataset.entity);
+        });
+      });
+
+      document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+      document.getElementById('cancelModalBtn').addEventListener('click', closeModal);
+      document.getElementById('crudModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+      });
+
+      document.getElementById('locationFilter').addEventListener('change', function() {
+        updateDashboardByLocation(this.value);
+      });
+
+      // Theme toggle
+      document.getElementById('themeToggle').addEventListener('change', function() {
+        document.body.classList.toggle('bg-stone-100');
+        document.body.classList.toggle('bg-amber-50/30');
+      });
+
+      // ---------- SEED DATA ----------
+      function seedData() {
+        // Create admin user
+        const admin = { id: getNextId('user'), name: 'John Doe', email: 'john@bistro.com', phone: '555-0101', active: true };
+        users.push(admin);
+
+        // Create org
+        const org = { id: getNextId('org'), name: 'Downtown Bistro', description: 'Main restaurant', ownerId: admin.id, active: true, ready: true };
+        organizations.push(org);
+
+        // Org membership
+        orgMemberships.push({ id: getNextId('om'), userId: admin.id, orgId: org.id, role: 'owner', active: true });
+
+        // Locations
+        const loc1 = { id: getNextId('loc'), name: 'Main St', address: '123 Main St', city: 'New York', state: 'NY', zip: '10001', country: 'USA', active: true, organizationId: org.id };
+        const loc2 = { id: getNextId('loc'), name: 'Broadway', address: '456 Broadway', city: 'New York', state: 'NY', zip: '10002', country: 'USA', active: true, organizationId: org.id };
+        locations.push(loc1, loc2);
+
+        // Location memberships for admin
+        locMemberships.push({ id: getNextId('lm'), userId: admin.id, locationId: loc1.id, active: true });
+        locMemberships.push({ id: getNextId('lm'), userId: admin.id, locationId: loc2.id, active: true });
+
+        // Entitlements
+        entitlements.push({ id: getNextId('ent'), locationId: loc1.id, feature: 'POS', enabled: true });
+        entitlements.push({ id: getNextId('ent'), locationId: loc1.id, feature: 'Inventory Management', enabled: true });
+        entitlements.push({ id: getNextId('ent'), locationId: loc2.id, feature: 'POS', enabled: true });
+
+        // Add a manager
+        const manager = { id: getNextId('user'), name: 'Jane Smith', email: 'jane@bistro.com', phone: '555-0102', active: true };
+        users.push(manager);
+        orgMemberships.push({ id: getNextId('om'), userId: manager.id, orgId: org.id, role: 'manager', active: true });
+        locMemberships.push({ id: getNextId('lm'), userId: manager.id, locationId: loc1.id, active: true }); // only downtown
+      }
+
+      // ---------- RENDER ALL ----------
+      function renderAll() {
+        renderOrganizations();
+        renderLocations();
+        renderUsers();
+        renderEntitlements();
+        updateLocationFilter();
+      }
+
+      // ---------- INIT ----------
+      buildServiceCards();
+      seedData();
+      renderAll();
+      // Set current user display
+      document.getElementById('currentUserName').textContent = 'John Doe (Owner)';
+      document.getElementById('currentUserAvatar').textContent = 'JD';
+      document.getElementById('dashSubtitle').textContent = 'All accessible locations · Real‑time overview';
+
+    })();
+  </script>
+
+</body>
+</html>

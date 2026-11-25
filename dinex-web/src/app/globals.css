@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* DineX tokens: cardamom green on cool stone, saffron + chili as signals. RGB triplets so Tailwind opacity works. */
+:root {
+  --bg: 244 245 242;
+  --surface: 255 255 255;
+  --sunken: 236 238 233;
+  --line: 223 227 220;
+  --ink: 20 32 27;
+  --muted: 98 110 103;
+  --brand: 13 122 98;
+  --brand-strong: 9 99 79;
+  --brand-soft: 219 242 234;
+  --good: 22 130 74;
+  --good-soft: 220 243 229;
+  --warn: 176 104 0;
+  --warn-soft: 255 240 207;
+  --bad: 191 44 44;
+  --bad-soft: 252 228 226;
+  --side: 14 26 22;
+  --side-ink: 214 226 220;
+  --side-hover: 28 44 38;
+  --accent: 232 160 24;
+  color-scheme: light;
+}
+.dark {
+  --bg: 15 21 19;
+  --surface: 23 31 28;
+  --sunken: 31 41 37;
+  --line: 44 57 51;
+  --ink: 238 244 240;
+  --muted: 150 165 157;
+  --brand: 52 190 154;
+  --brand-strong: 90 214 180;
+  --brand-soft: 20 55 46;
+  --good: 84 200 140;
+  --good-soft: 22 54 40;
+  --warn: 240 182 70;
+  --warn-soft: 58 46 18;
+  --bad: 244 120 116;
+  --bad-soft: 64 28 28;
+  --side: 10 16 14;
+  --side-ink: 214 226 220;
+  --side-hover: 24 38 33;
+  --accent: 240 182 70;
+  color-scheme: dark;
+}
+
+html, body { height: 100%; }
+/* Native-app feel: no grey tap flash, no pull-to-refresh bounce, no double-tap zoom delay */
+html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+body { overscroll-behavior-y: none; }
+button, a, [role="button"], select, label, summary { touch-action: manipulation; }
+@media (pointer: coarse) { button, [role="button"], .no-select { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } }
+/* iOS zooms the page when an input is under 16px */
+@media (max-width: 767px) { input, select, textarea { font-size: 16px !important; } }
+@media (display-mode: standalone) { body { -webkit-user-select: none; user-select: none; } input, textarea { -webkit-user-select: text; user-select: text; } }
+body { @apply bg-bg text-ink antialiased font-sans; font-feature-settings: "cv11", "ss03"; }
+h1, h2, h3, .font-display { font-family: "Plus Jakarta Sans Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.02em; }
+* { @apply border-line; }
+::selection { background: rgb(var(--brand) / 0.25); }
+input, select, textarea, button { font: inherit; }
+:focus-visible { outline: 2px solid rgb(var(--brand)); outline-offset: 2px; }
+.num, .tabular { font-variant-numeric: tabular-nums; }
+.scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: rgb(var(--line)); border-radius: 8px; }
+
+@layer utilities {
+  .bg-brand-gradient { background-image: linear-gradient(135deg, rgb(var(--brand)) 0%, rgb(var(--brand-strong)) 100%); }
+  .glass { background: rgb(var(--surface) / 0.8); backdrop-filter: blur(14px) saturate(1.4); }
+  .shadow-glow { box-shadow: 0 8px 28px rgb(var(--brand) / 0.28); }
+  .ring-soft { box-shadow: 0 0 0 4px rgb(var(--brand) / 0.12); }
+  /* Torn paper edge (kitchen ticket) */
+  .ticket-edge {
+    --r: 7px;
+    -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(var(--r) * 2) 100%;
+            mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(var(--r) * 2) 100%;
+    padding-bottom: calc(var(--r) * 1.4);
+  }
+}
+
+@keyframes pop-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes shimmer { to { background-position: -200% 0; } }
+.animate-pop { animation: pop-in .18s ease-out both; }
+.skeleton { background: linear-gradient(90deg, rgb(var(--sunken)) 25%, rgb(var(--line)) 50%, rgb(var(--sunken)) 75%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+}
+@media print {
+  body * { visibility: hidden; }
+}
+
+/* Dark mode: the brand colour is light, so text on brand surfaces goes dark for AA contrast */
+.dark .bg-brand.text-white, .dark .bg-brand-gradient.text-white { color: #04201a; }

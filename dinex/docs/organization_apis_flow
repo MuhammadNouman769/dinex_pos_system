@@ -1,0 +1,76 @@
+First-time Restaurant Setup
+
+POST /api/v1/onboarding/restaurant/
+
+Your frontend progress bar can be:
+
+Step 1
+Organization
+   ↓
+Step 2
+Owner / User
+   ↓
+Step 3
+Location
+   ↓
+Step 4
+Review
+   ↓
+Create Restaurant
+
+
+Request Data Sample
+{
+    "organization": {
+        "name": "The Makar",
+        "currency": "PKR",
+        "timezone": "Asia/Karachi"
+    },
+    "owner": {
+        "username": "usama",
+        "email": "usama@example.com",
+        "password": "secure-password",
+        "first_name": "Usama",
+        "last_name": "Shafaqat"
+    },
+    "location": {
+        "name": "Main Branch",
+        "address": "Islamabad, Pakistan",
+        "phone": "03001234567",
+        "is_primary": true
+    }
+}
+
+
+
+Backend transaction
+
+BEGIN TRANSACTION
+
+Create User
+     ↓
+Create Organization
+     ↓
+Create OrganizationMembership
+     role = OWNER
+     ↓
+Create Location
+     ↓
+COMMIT
+
+
+B. Check Onboarding Status
+GET /api/v1/onboarding/status/
+
+Useful if the user closes the browser halfway through onboarding.
+
+Example:
+
+{
+    "completed": false,
+    "organization_created": true,
+    "owner_created": true,
+    "location_created": false,
+    "next_step": "LOCATION"
+}
+

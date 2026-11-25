@@ -1,0 +1,16 @@
+venv
+.venv
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+*.sqlite3
+__pycache__
+*.pyc
+media
+staticfiles
+tests
+docs
+.idea
+.vscode

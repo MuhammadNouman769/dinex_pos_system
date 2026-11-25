@@ -1,0 +1,35 @@
+# Copy to  .github/workflows/ci.yml  at the root of your repository (the folder that contains dinex/, dinex-web/ and deploy/).
+name: CI
+on: [push, pull_request]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: dinex }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DEBUG: "True"
+      SECRET_KEY: ci-only-key
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dinex
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip, cache-dependency-path: dinex/requirements.txt }
+      - run: pip install -r dinex/requirements.txt
+      - run: cd dinex && python manage.py makemigrations --check --dry-run
+      - run: cd dinex && python manage.py test tests
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: dinex-web/package-lock.json }
+      - run: cd dinex-web && npm ci
+      - run: cd dinex-web && npx tsc --noEmit
+      - run: cd dinex-web && npm run build

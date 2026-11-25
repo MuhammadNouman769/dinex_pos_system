@@ -1,0 +1,37 @@
+# One domain for everything. Caddy gets and renews the HTTPS certificate by itself.
+{
+	email {$ACME_EMAIL:admin@localhost}
+}
+
+{$DOMAIN:localhost} {
+	encode zstd gzip
+
+	# API, Django admin and its static files -> Django
+	@backend path /api/* /django-admin/* /static/*
+	handle @backend {
+		reverse_proxy backend:8000
+	}
+
+	# Uploaded product images
+	handle /media/* {
+		root * /srv
+		file_server
+	}
+
+	# Everything else (the DineX web app, including /admin = DineX Admin) -> Next.js
+	handle {
+		reverse_proxy web:3000
+	}
+
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy same-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	}
+
+	log {
+		output stdout
+	}
+}

@@ -1,0 +1,114 @@
+# Deploying DineX
+
+One server, one domain, one command. Everything (HTTPS certificate, database, web app, API, nightly backups,
+subscription job) runs in Docker.
+
+```
+Internet ── Caddy (HTTPS, auto certificate) ──┬── /            → web      (Next.js, the DineX app + DineX Admin)
+                                              ├── /api/*       → backend  (Django + gunicorn)  ── PostgreSQL
+                                              └── /media/*     → uploaded images
+                                  also running:  scheduler (daily billing job) · backup (nightly dump)
+```
+
+## One domain for all your restaurants
+You need **one** domain, e.g. `app.dinex.com`. All 50 (or 500) restaurants open the same address and sign in with their own
+username; each sees only its own data. Restaurants do **not** need their own domain, hosting, or any Google/Play-Store
+registration. (If a restaurant later wants `karachigrill.dinex.com` or its own domain, that is an optional extra: a wildcard DNS
+record and a wildcard certificate; the app does not need to change.)
+
+## What you need
+| Thing | Notes |
+|---|---|
+| A domain | any registrar. You only need to add one **A record**: `app` → your server's IP |
+| A server (VPS) | Ubuntu 24.04, **2 vCPU / 4 GB RAM / 40 GB SSD** is plenty for ~50 restaurants (≈ USD 10-20/month: Hetzner, DigitalOcean, Vultr, AWS Lightsail…). Pick the region closest to your restaurants |
+| An email address | Let's Encrypt uses it for certificate notices |
+| A place for off-site backups | Backblaze B2 / Google Drive / another server (see "Backups") |
+
+## First deployment (about 20 minutes)
+1. **Point DNS.** Create an **A record** `app.yourdomain.com` → server IP. Wait a few minutes (`ping app.yourdomain.com` should show the IP).
+2. **Secure the server.** Use SSH keys (disable password login) and open only ports 22, 80, 443:
+   ```
+   ufw allow OpenSSH && ufw allow 80 && ufw allow 443/tcp && ufw allow 443/udp && ufw enable
+   apt install -y unattended-upgrades
+   ```
+3. **Install Docker:** `curl -fsSL https://get.docker.com | sh`
+4. **Upload the project** so the server has these three folders side by side (git clone or `scp`):
+   ```
+   /opt/dinex/dinex        (backend)
+   /opt/dinex/dinex-web    (frontend)
+   /opt/dinex/deploy       (this folder)
+   ```
+5. **Create the settings** (generates strong random secrets for you):
+   ```
+   cd /opt/dinex/deploy
+   ./setup.sh app.yourdomain.com you@email.com
+   ```
+6. **Start everything:** `docker compose up -d --build` (the first build takes a few minutes).
+   Database tables are created automatically. Check: `docker compose ps` (all "running / healthy").
+7. **Create your XverLabs admin login:**
+   `docker compose exec backend python manage.py createsuperuser`
+8. Open `https://app.yourdomain.com`, sign in. You land in **DineX Admin**; click **Add restaurant**.
+   Give the owner the generated username/password. Done.
+
+> Never run `seed_demo` on the real server: it wipes the database. Use it only on a separate test server.
+
+## Everyday operations (run inside `/opt/dinex/deploy`)
+| Task | Command |
+|---|---|
+| See what is running | `docker compose ps` |
+| Live logs | `docker compose logs -f backend` (or `web`, `caddy`, `db`) |
+| **Update to a new version** | upload the new code, then `docker compose up -d --build` (migrations run by themselves) |
+| Restart | `docker compose restart backend` |
+| Django shell | `docker compose exec backend python manage.py shell` |
+| Run the billing job now | `docker compose exec backend python manage.py run_billing` |
+| Reset a forgotten owner password | DineX Admin → restaurant → *Reset owner password* |
+
+The **scheduler** container runs `run_billing` every 6 hours: it issues invoices when a paid month ends, marks late ones, and suspends a restaurant after the grace period (`BILLING_GRACE_DAYS`).
+
+## Backups (do not skip)
+- The **backup** container writes `dinex_<date>.dump` (database) and `media_<date>.tar.gz` (images) every night into the `dinex_backups` Docker volume and keeps 14 days (`BACKUP_KEEP_DAYS`).
+- **That is on the same server.** If the server dies, so do the backups. Copy them off-site every night:
+  install `rclone`, run `rclone config` (e.g. Backblaze B2: very cheap), then add a cron line on the host:
+  `30 3 * * * /opt/dinex/deploy/offsite-backup.sh dinex-offsite:your-bucket >> /var/log/dinex-offsite.log 2>&1`
+- **Test a restore** on a spare server once: `./restore.sh /path/to/dinex_YYYYMMDD_HHMMSS.dump`. An untested backup is a guess.
+- Also keep a copy of `deploy/.env` somewhere safe (password manager). Without `SECRET_KEY` / DB password a restore is painful.
+
+## Monitoring
+- Add `https://app.yourdomain.com/api/v1/health/` to a free uptime monitor (UptimeRobot, BetterStack) so you get a phone alert when it is down. It returns `{"status":"ok","database":"ok"}`.
+- Disk space: `df -h`. Docker logs rotate; old images: `docker image prune -f`.
+
+## Security notes
+- Secrets are generated by `setup.sh` and live only in `deploy/.env` (`chmod 600`). The app refuses to start in production with a weak `SECRET_KEY`.
+- PostgreSQL is **not** exposed to the internet (no published port). Only Caddy listens on 80/443.
+- HTTPS everywhere, HSTS, secure cookies, `X-Frame-Options: DENY`, API docs switched off, Django admin moved to `/django-admin/`.
+- Login attempts are limited (`LOGIN_RATE`, default 30/min per address; counters are per gunicorn worker).
+- Restaurants with an unpaid/expired subscription become read-only (HTTP 402) automatically.
+- Keep the server patched (`unattended-upgrades`), and update Docker images now and then: `docker compose pull && docker compose up -d --build`.
+
+## Capacity
+50 restaurants × a few thousand orders a day is a light load for PostgreSQL. If you grow: first give the VPS more RAM/CPU (and raise
+gunicorn `--workers` in the backend `Dockerfile`), later move PostgreSQL to a managed database (change `DATABASE_URL`), and only then think about more servers.
+
+## Troubleshooting
+| Symptom | Likely cause |
+|---|---|
+| Browser says "not secure" / no certificate | DNS not pointing at the server yet, or ports 80/443 blocked. `docker compose logs caddy` |
+| 502 Bad Gateway right after start | backend is still migrating; wait 30-60 s |
+| "Too many requests" (429) on login | login limit hit; wait a minute, raise `LOGIN_RATE` if you have many staff behind one IP |
+| A restaurant gets "changes are disabled" (402) | subscription suspended / trial ended: reactivate it in DineX Admin |
+| `ImproperlyConfigured: SECRET_KEY…` | `.env` missing or has a weak key: re-run `./setup.sh` (only on a fresh install) |
+| Backend cannot reach database | `docker compose ps` → `db` must be healthy; check `POSTGRES_*` in `.env` |
+
+## What was and was not tested
+Tested (outside Docker, same components): all 132 backend tests on **PostgreSQL 16**; demo data seeding on PostgreSQL; the backend under
+**gunicorn in production mode** (HTTPS redirect, secure headers, health, static files, moved admin, API docs off, login throttling);
+the frontend production build; and the whole stack behind **Caddy with HTTPS** (pages, `/api`, static, media, redirects, compression)
+running a full end-to-end scenario against PostgreSQL.
+**Not tested:** the `docker build` / `docker compose` commands themselves (no Docker in the build environment) and a real
+Let's Encrypt certificate. The Dockerfiles are standard; if a build step fails on your server, send the error and it is a quick fix.
+
+
+## Email (needed for forgot-password and customer points)
+Edit `deploy/.env` and fill the `EMAIL_*` lines with your SMTP account (host, port, user, password), then `docker compose up -d`.
+Test: sign in, My account → add your email → the code must arrive in your inbox. Without SMTP the codes appear only in `docker compose logs backend`.
+The **reminders** container sends loyalty reminders to customers (who gave an email) once a day, at most every 3 days per customer, and only for restaurants that switched reminders on.

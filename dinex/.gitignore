@@ -1,0 +1,171 @@
+# ────────────────────────────────────────────
+# MN Kitchen POS — Root .gitignore
+# ────────────────────────────────────────────
+
+
+
+# ============================================
+# Environment / Secrets
+# ============================================
+
+.env
+.env.local
+.env.*.local
+
+# Allow example environment files
+!.env.example
+!**/.env.example
+
+
+# ============================================
+# Build Outputs
+# ============================================
+
+
+
+# ============================================
+# Python / Django
+# ============================================
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+
+# Django static/media generated files
+staticfiles/
+
+# Python test/cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Python packages
+*.egg-info/
+
+
+# ============================================
+# Django Backend
+# ============================================
+
+backend/.venv/
+backend/__pycache__/
+backend/.env.*
+
+backend/*.log
+
+# Local SQLite database
+backend/*.sqlite3
+backend/*.sqlite3-journal
+
+
+# ============================================
+# Database Files
+# ============================================
+
+*.db
+*.sqlite
+*.sqlite3
+
+# SQLite temporary files
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite-journal
+
+
+# ============================================
+# OS
+# ============================================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+
+# ============================================
+# IDE / Editors
+# ============================================
+
+.idea/
+.vscode/
+
+*.swp
+*.swo
+*~
+
+# VS Code history
+.history/
+
+
+# ============================================
+# Logs
+# ============================================
+
+logs/
+
+
+
+# ============================================
+# Test / Coverage
+# ============================================
+
+coverage/
+
+
+# Design sync
+.ds-sync
+ds-bundle/
+.design-sync/*
+
+
+# ============================================
+# Temporary / Backup Files
+# ============================================
+
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Editor backup files
+*.orig
+
+
+# ============================================
+# Certificates / Private Keys
+# ============================================
+
+*.pem
+*.key
+*.crt
+
+
+# ============================================
+# Local Application Data
+# ============================================
+
+data/
+local_data/
+storage/
+
+
+# ============================================
+# Electron / Application Runtime Data
+# ============================================
+
+*.lock
