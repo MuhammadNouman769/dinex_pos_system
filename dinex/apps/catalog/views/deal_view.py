@@ -67,7 +67,7 @@ class DealListCreateView(APIView):
         if search_term:
             queryset = DealSelector.search_deals(organization_id, search_term)
         
-        queryset = queryset.prefetch_related('items', 'locations')
+        queryset = queryset.prefetch_related('items', 'locations').order_by('-id')
         
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, request)

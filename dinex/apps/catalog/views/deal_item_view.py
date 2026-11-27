@@ -54,7 +54,7 @@ class DealItemListCreateView(APIView):
             deal__organization_id=organization_id,
             product_variant__product__organization_id=organization_id
         )
-        queryset = queryset.select_related('deal', 'product_variant', 'product_variant__product')
+        queryset = queryset.select_related('deal', 'product_variant', 'product_variant__product').order_by('-id')
         
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, request)

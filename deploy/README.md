@@ -112,3 +112,15 @@ Let's Encrypt certificate. The Dockerfiles are standard; if a build step fails o
 Edit `deploy/.env` and fill the `EMAIL_*` lines with your SMTP account (host, port, user, password), then `docker compose up -d`.
 Test: sign in, My account → add your email → the code must arrive in your inbox. Without SMTP the codes appear only in `docker compose logs backend`.
 The **reminders** container sends loyalty reminders to customers (who gave an email) once a day, at most every 3 days per customer, and only for restaurants that switched reminders on.
+
+## Google Search Console (get found on Google)
+DineX already ships `robots.txt`, `sitemap.xml`, page titles/descriptions, a share image and structured data for the public page. You only do the last mile:
+
+1. Run `./setup.sh yourdomain.com you@email.com` (it writes `NEXT_PUBLIC_SITE_URL=https://yourdomain.com` in `deploy/.env`). If you set up earlier, add that line yourself, then rebuild: `docker compose up -d --build web`. The address is fixed at build time.
+2. Optional: fill `NEXT_PUBLIC_CONTACT_PHONE` and `NEXT_PUBLIC_CONTACT_EMAIL` in `deploy/.env` (shown in the footer and in Google's business data), then rebuild `web`.
+3. Open https://search.google.com/search-console → **Add property** → **URL prefix** → `https://yourdomain.com`.
+4. Choose **HTML tag** verification. Copy only the `content="…"` value into `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION=` in `deploy/.env`, rebuild `web`, then press **Verify**.
+5. Sidebar → **Sitemaps** → enter `sitemap.xml` → **Submit**. Then **URL Inspection** → paste `https://yourdomain.com/` → **Request indexing**.
+6. Check in a browser: `/robots.txt`, `/sitemap.xml` and `/opengraph-image` open correctly. Google usually lists a new site within a few days to two weeks.
+
+Only the landing page and `/terms` are indexed. Login, signup, the restaurant app, DineX Admin and `/api` are marked `noindex`. Do not block `/login` in robots.txt: Google must be able to read its `noindex` tag.

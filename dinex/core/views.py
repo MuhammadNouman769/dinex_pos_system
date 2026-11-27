@@ -19,10 +19,10 @@ from rest_framework_simplejwt.views import (
         OpenApiExample(
             "Login Example",
             summary="Admin login",
-            description="Example credentials for an MN Kitchen POS user.",
+            description="Demo restaurant owner (created by: python manage.py seed_demo).",
             value={
-                "username": "admin",
-                "password": "Admin@12345",
+                "username": "karachigrill",
+                "password": "Demo@12345",
             },
             request_only=True,
         ),

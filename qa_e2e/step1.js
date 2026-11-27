@@ -9,7 +9,7 @@ const step = (m) => console.log('•', m);
   const ctx = await br.newContext({ viewport: { width: 1280, height: 800 } });
   const p = await ctx.newPage();
   const errs = []; p.on('pageerror', e => errs.push(String(e))); p.on('console', m => { if (m.type()==='error') errs.push(m.text()); });
-  await p.goto(B + '/'); await p.waitForSelector('text=Terms of Use');
+  await p.goto(B + '/start'); await p.waitForSelector('text=Terms of Use');
   await p.screenshot({ path: sh('01-terms') });
   const btn = p.getByRole('button', { name: /I agree/ });
   if (await btn.isEnabled()) throw new Error('agree button should be disabled before reading/agreeing');

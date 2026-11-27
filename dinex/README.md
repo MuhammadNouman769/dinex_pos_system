@@ -1,5 +1,5 @@
 # Dinex-pos API
-This repository contains the backend API for The MN Kitchen POS, built with Django and Django REST Framework.
+This repository contains the backend API for The DineX, built with Django and Django REST Framework.
 
 It supports restaurant organization setup, menu catalog management, customer handling, order processing, tables, inventory workflows, and reporting for a restaurant POS system.
 
@@ -156,7 +156,7 @@ If you want PostgreSQL instead of SQLite:
 
 ```env
 DB_ENGINE=django.db.backends.postgresql
-DB_NAME=mn_kitchen_pos
+DB_NAME=dinex
 DB_USER=postgres
 DB_PASSWORD=your_password
 DB_HOST=127.0.0.1

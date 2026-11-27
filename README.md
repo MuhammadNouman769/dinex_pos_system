@@ -1,20 +1,45 @@
 # DineX by XverLabs
 
-Restaurant POS + orders + recipe-based inventory + cash & reports, sold as a monthly subscription.
+Restaurant POS + orders + recipe-based inventory + cash, payroll, loyalty and reports, sold as a monthly subscription
+(Starter PKR 2,999 · Growth PKR 4,999 · Pro PKR 6,999, 14-day free trial, manual payment approval).
+Works offline: orders are stored on the device and synced safely when the internet returns.
 
 | Folder | What |
 |---|---|
-| `dinex/` | Backend: Django REST API (PostgreSQL in production) |
-| `dinex-web/` | Frontend: Next.js web app (restaurants + DineX Admin for XverLabs) |
-| `deploy/` | Docker Compose, HTTPS (Caddy), backups, setup script, deployment guide |
+| `dinex/` | Backend: Django 6 + DRF REST API (SQLite in development, PostgreSQL in production) |
+| `dinex-web/` | Frontend: Next.js 15 (public landing page, restaurant app, DineX Admin for XverLabs) |
+| `deploy/` | Docker Compose, HTTPS (Caddy), backups, `setup.sh`, deployment guide |
+| `scripts/` | Developer helpers (`dev-setup`, `dev`, `test`) for Linux/macOS (`.sh`) and Windows (`.bat`) |
+| `qa_e2e/` | Playwright end-to-end scripts used for QA (see `qa_e2e/README.md`) |
 
-**Put it live:** open `deploy/README.md`.
-**Try it on your laptop with demo data:**
+## Run it on your computer (development)
+
+Needs **Python 3.12+** and **Node.js 20+**.
+
+```bash
+make setup      # one time: venv, packages, database, demo data (~2 min), npm install
+make dev        # backend http://localhost:8000  +  web http://localhost:3000
 ```
-cd dinex && python -m venv venv && . venv/bin/activate && pip install -r requirements.txt
-printf 'SECRET_KEY=dev-only-key\nDEBUG=True\n' > .env
-python manage.py migrate && python manage.py seed_demo --reset && python manage.py runserver 8000
-# new terminal
-cd dinex-web && cp .env.example .env.local && npm install && npm run dev      # http://localhost:3000
-```
-Demo logins: `dinex/docs/DEMO_DATA.md` (admin `xverlabs` / `DineX@2026`).
+
+No `make`? Use `./scripts/dev-setup.sh` then `./scripts/dev.sh`. On Windows: `scripts\dev-setup.bat` then `scripts\dev.bat`.
+
+| What | Address / login |
+|---|---|
+| Restaurant app | http://localhost:3000/login — `karachigrill` / `Demo@12345` |
+| DineX Admin (XverLabs) | same login page — `xverlabs` / `DineX@2026` |
+| API docs (Swagger) | http://localhost:8000/api/docs/ (click Authorize, paste the access token) |
+| All demo accounts | `dinex/docs/DEMO_DATA.md` |
+
+Other commands: `make test` (backend tests + TypeScript check), `make demo` (wipe and reload demo data), `make build`, `make help`.
+
+### Configuration
+* Backend: `dinex/.env` (copied from `dinex/.env.example` by setup). Email codes print in the terminal unless SMTP is set.
+* Frontend: `dinex-web/.env.local` (from `.env.example`). `NEXT_PUBLIC_*` values are fixed at build time.
+
+## Put it live
+Open **`deploy/README.md`** (server, domain, HTTPS, backups, email, Google Search Console).
+
+## Google / SEO
+The public landing page (`/`) is server-rendered with metadata, a share image, `robots.txt`, `sitemap.xml` and structured data.
+Login, signup and app pages are `noindex`. Set `NEXT_PUBLIC_SITE_URL` to your real domain before building
+(`deploy/setup.sh` does it). Steps to get listed: `deploy/README.md` → "Google Search Console".

@@ -9,6 +9,7 @@
 	# API, Django admin and its static files -> Django
 	@backend path /api/* /django-admin/* /static/*
 	handle @backend {
+		header X-Robots-Tag "noindex, nofollow"
 		reverse_proxy backend:8000
 	}
 

@@ -15,6 +15,12 @@ ACME_EMAIL=$EMAIL
 DEBUG=False
 SECRET_KEY=$(rand 80)
 ALLOWED_HOSTS=$DOMAIN
+# SEO: public address used in canonical links, sitemap.xml and share previews
+NEXT_PUBLIC_SITE_URL=https://$DOMAIN
+NEXT_PUBLIC_CONTACT_PHONE=
+NEXT_PUBLIC_CONTACT_EMAIL=
+# Paste the Google Search Console "HTML tag" code here (only the content value)
+NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION=
 CSRF_TRUSTED_ORIGINS=https://$DOMAIN
 CORS_ALLOWED_ORIGINS=
 LOG_LEVEL=INFO

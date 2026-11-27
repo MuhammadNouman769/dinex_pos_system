@@ -58,6 +58,8 @@ MENU = [
         ("Half", 980, {"chicken_bone": 500, "yogurt": 80, "spice": 24, "gg_paste": 20})]),
     ("BBQ", "Seekh Kabab (4 pcs)", 6, [
         ("Regular", 480, {"beef": 220, "onion": 25, "spice": 10, "oil": 10})]),
+    ("BBQ", "Chapli Kabab", 5, [("Regular", 450, None)]),
+    ("BBQ", "Chicken Broast", 6, [("Regular", 750, None)]),
     ("BBQ", "Malai Boti (6 pcs)", 5, [
         ("Regular", 690, {"chicken": 260, "cream": 40, "yogurt": 30, "spice": 8})]),
     ("Karahi", "Chicken Karahi", 8, [
@@ -66,6 +68,9 @@ MENU = [
     ("Karahi", "Mutton Karahi", 4, [
         ("Half", 2200, {"mutton": 450, "tomato": 180, "gg_paste": 25, "oil": 70, "spice": 15}),
         ("Full", 4200, {"mutton": 900, "tomato": 350, "gg_paste": 50, "oil": 130, "spice": 28})]),
+    ("Karahi", "Beef Nihari", 5, [("Regular", 650, None)]),
+    ("Karahi", "Paya", 3, [("Regular", 600, None)]),
+    ("Karahi", "Haleem", 6, [("Regular", 380, None)]),
     ("Karahi", "Daal Mash", 3, [
         ("Regular", 420, {"daal": 150, "butter": 20, "onion": 30, "spice": 5})]),
     ("Rice & Bread", "Chicken Biryani", 9, [
@@ -81,6 +86,8 @@ MENU = [
     ("Sides", "French Fries", 9, [
         ("Regular", 250, {"potato": 220, "oil": 40}),
         ("Large", 380, {"potato": 350, "oil": 60})]),
+    ("Sides", "Samosa (2 pcs)", 7, [("Regular", 120, None)]),
+    ("Sides", "Chicken Roll", 6, [("Regular", 320, None)]),
     ("Sides", "Raita", 4, [("Regular", 80, None)]),
     ("Sides", "Fresh Salad", 3, [("Regular", 100, {"lettuce": 60, "tomato": 50, "onion": 30})]),
     ("Drinks", "Soft Drink", 11, [("Regular", 120, {"cola": 1})]),
@@ -100,3 +107,9 @@ REFUND_REASONS = ["Cold food", "Wrong item served", "Item missing from order", "
 EXPENSES = [("vegetables", "Vegetables from mandi", (800, 3500)), ("fuel", "Charcoal", (600, 1800)), ("gas", "Gas cylinder", (2200, 4500)),
             ("cleaning", "Cleaning supplies", (300, 1200)), ("ice", "Ice", (200, 700)), ("repairs", "Minor repair", (500, 2500)),
             ("packaging", "Takeaway boxes", (700, 2500))]
+
+
+# Dish name -> photo in demo_images/ (the file name is the dish slug)
+def photo_for(dish):
+    import re
+    return re.sub(r"[^a-z0-9]+", "-", dish.lower()).strip("-") + ".jpg"

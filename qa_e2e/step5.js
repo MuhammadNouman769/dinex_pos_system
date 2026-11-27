@@ -65,7 +65,7 @@ const ok = (c, m) => { if (!c) throw new Error('FAIL: ' + m); step('ok: ' + m); 
   // ---- 4. dine-in, move table, split, equal pay
   await p.goto(B + '/pos'); await p.waitForSelector('[data-testid^="tile-"]');
   const fv = (await j('GET', `/catalog/products/${fries.id}/`)).variants[0].id, pv = (await j('GET', `/catalog/products/${pizza.id}/`)).variants[0].id;
-  await p.getByTestId(`tile-${fv}`).click(); await p.getByRole('button', { name: 'Add one more Fries' }).click();
+  await p.getByTestId(`tile-${fv}`).click(); await p.getByTestId(`tile-${fv}`).click();
   await p.getByTestId(`tile-${pv}`).click();
   await p.getByRole('button', { name: 'Dine-in', exact: true }).click(); await p.getByTestId('choose-table').click(); await p.waitForSelector('text=Choose a table');
   await p.locator('[role=dialog] svg[role=img]').first().click();

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PublicShell } from "@/components/public/PublicShell";
 import { TERMS, TERMS_VERSION } from "@/lib/terms";
 
-export const metadata = { title: "Terms of Use · DineX" };
+export const metadata = { title: "Terms of Use", description: "The terms of use for DineX restaurant POS software by XverLabs.", alternates: { canonical: "/terms" } };
 
 export default function TermsPage() {
   return (

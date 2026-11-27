@@ -56,7 +56,7 @@ class DealLocationListCreateView(APIView):
             deal__organization_id=organization_id,
             location__organization_id=organization_id
         )
-        queryset = queryset.select_related('deal', 'location')
+        queryset = queryset.select_related('deal', 'location').order_by('-id')
         
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, request)

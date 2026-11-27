@@ -13,7 +13,10 @@ from datetime import datetime, time, timedelta
 from decimal import Decimal
 from importlib import import_module
 
+from pathlib import Path
+
 from django.contrib.auth import get_user_model
+from django.core.files.base import ContentFile
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -38,6 +41,7 @@ from apps.staff import services as staff_services
 from apps.staff.models import AttendanceRecord, Employee, WorkSchedule
 
 User = get_user_model()
+PHOTOS = Path(__file__).parent / "demo_images"
 PASSWORD = "Demo@12345"
 ADMIN = ("xverlabs", "DineX@2026")
 WEEKDAY = [0.8, 0.85, 0.9, 1.0, 1.35, 1.5, 1.25]          # Mon..Sun
@@ -364,6 +368,9 @@ class Command(BaseCommand):
                 cats[cat] = ProductCategory.objects.create(organization=org, name=cat, slug=cat.lower().replace(" & ", "-").replace(" ", "-"))
             product = Product.objects.create(organization=org, category=cats[cat], name=dish, slug=dish.lower().replace(" ", "-").replace("(", "").replace(")", ""),
                                              sku=dish.upper().replace(" ", "")[:14] + str(random.randint(100, 999)))
+            photo = PHOTOS / D.photo_for(dish)
+            if photo.exists():
+                product.image.save(photo.name, ContentFile(photo.read_bytes()), save=True)
             vs = []
             for vname, price, recipe in variants:
                 v = ProductVariant.objects.create(product=product, name=vname, base_price=Decimal(round(price * spec["price"] / 10) * 10))
@@ -495,7 +502,7 @@ class Command(BaseCommand):
                 cash.add_movement(shifts[key], user, "SAFE_DROP", Decimal(math.floor(float(expected) * 0.55 / 1000) * 1000), "Cash moved to safe", "")
                 expected = cash.shift_summary(shifts[key])["expected_cash"]
             diff = 0 if key == "mgr" else (-500 if (bad_day and key == "c2" and ctx["spec"]["slug"] == "karachigrill") else random.choice(diffs))
-            cash.close_shift(shifts[key], user, expected + Decimal(diff), "Counted at close" if diff == 0 else ("Short: will check" if diff < 0 else "Slightly over"))
+            cash.close_shift(shifts[key], user, max(Decimal(0), expected + Decimal(diff)), "Counted at close" if diff == 0 else ("Short: will check" if diff < 0 else "Slightly over"))
         return placed
 
     def pick_items(self, ctx):

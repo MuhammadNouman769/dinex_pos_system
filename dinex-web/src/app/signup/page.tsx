@@ -29,7 +29,7 @@ function SignupForm() {
   useEffect(() => {
     if (loading) return;
     if (me) { if (!created.current) router.replace("/dashboard"); return; }
-    if (!agreedToTerms(TERMS_VERSION, TERMS_KEY)) { router.replace("/"); return; }
+    if (!agreedToTerms(TERMS_VERSION, TERMS_KEY)) { router.replace("/start"); return; }
     api.get<{ plans: PublicPlan[] }>("/public/plans/").then((d) => d.plans).catch(() => FALLBACK_PLANS)
       .then((list) => { const p = list.find((x) => x.code === code); if (!p) router.replace("/plans"); else setPlan(p); });
   }, [me, loading, code, router]);

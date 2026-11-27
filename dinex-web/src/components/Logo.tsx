@@ -1,3 +1,4 @@
+"use client";
 import { useId } from "react";
 
 export function Logo({ className = "h-8 w-8" }: { className?: string }) {

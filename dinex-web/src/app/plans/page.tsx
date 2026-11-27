@@ -19,7 +19,7 @@ export default function PlansPage() {
   useEffect(() => {
     if (loading) return;
     if (me) { router.replace(me.role === "PLATFORM" ? "/admin" : "/billing"); return; }
-    if (!agreedToTerms(TERMS_VERSION, TERMS_KEY)) { router.replace("/"); return; }
+    if (!agreedToTerms(TERMS_VERSION, TERMS_KEY)) { router.replace("/start"); return; }
     api.get<{ plans: PublicPlan[]; trial_days: number }>("/public/plans/")
       .then((d) => { setPlans(d.plans); setDays(d.trial_days); })
       .catch(() => setPlans(FALLBACK_PLANS));

@@ -95,3 +95,7 @@ input, select, textarea, button { font: inherit; }
 
 /* Dark mode: the brand colour is light, so text on brand surfaces goes dark for AA contrast */
 .dark .bg-brand.text-white, .dark .bg-brand-gradient.text-white { color: #04201a; }
+
+/* Grid and flex children may shrink below their content width, so a long name or number can never push a card
+   past the screen edge on small phones (zero specificity: any min-w-* utility still wins). */
+:where(.grid) > *, :where(.flex) > .flex-1 { min-width: 0; }

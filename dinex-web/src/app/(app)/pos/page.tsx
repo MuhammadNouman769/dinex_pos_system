@@ -129,7 +129,6 @@ export default function PosPage() {
   };
   const tapItem = (t: (typeof tiles)[number]) => (t.product.modifier_groups?.length ? setOptFor({ product: t.product, variant: t.variant }) : addItem(t));
   const qtyOfVariant = (id: number) => cart.filter((l) => l.kind === "item" && l.id === id).reduce((a, l) => a + l.qty, 0);
-  const lessVariant = (id: number) => { const last = [...cart].reverse().find((l) => l.kind === "item" && l.id === id); if (last) setQty(last.key, -1); };
   const setNote = (key: string, note: string) => setCart((c) => c.map((l) => (l.key === key ? { ...l, note: note || undefined } : l)));
   const addDeal = (x: (typeof runningDeals)[number]) => bump({ key: `d:${x.deal.id}`, kind: "deal", id: x.deal.id, name: x.deal.name, variant: "Deal", price: x.math!.price, list: x.math!.base, qty: 1 });
   const setQty = (key: string, d: number) => setCart((c) => c.map((l) => (l.key === key ? { ...l, qty: l.qty + d } : l)).filter((l) => l.qty > 0));
@@ -281,7 +280,7 @@ export default function PosPage() {
           <Link href="/cash" className="font-semibold underline">Open shift</Link>
         </div>
       )}
-      <div className="grid gap-6 md:grid-cols-[1fr_340px] lg:grid-cols-[1fr_390px]">
+      <div className="grid gap-6 md:grid-cols-[1fr_320px] xl:grid-cols-[1fr_380px]">
         <section className="min-w-0">
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <div className="relative min-w-[200px] flex-1">
@@ -298,11 +297,11 @@ export default function PosPage() {
           {dealTiles.length > 0 && (
             <div className="mb-6">
               <h2 className="mb-2 flex items-center gap-2 font-display text-base font-extrabold"><Tag className="h-4 w-4 text-accent" />Deals</h2>
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:[grid-template-columns:repeat(auto-fill,minmax(168px,1fr))]">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:[grid-template-columns:repeat(auto-fill,minmax(max(140px,calc((100%-48px)/4)),1fr))]">
                 {dealTiles.map(({ deal, math }) => (
                   <MenuCard key={deal.id} deal testId={`deal-${deal.id}`} name={deal.name} image={deal.image} price={money(math!.price, currency)} strike={money(math!.base, currency)}
                     badge={`Save ${money(math!.discount, currency)}`}
-                    qty={cart.find((l) => l.key === `d:${deal.id}`)?.qty ?? 0} onAdd={() => addDeal({ deal, math })} onLess={() => setQty(`d:${deal.id}`, -1)} />
+                    qty={cart.find((l) => l.key === `d:${deal.id}`)?.qty ?? 0} onAdd={() => addDeal({ deal, math })} />
                 ))}
               </div>
             </div>
@@ -312,10 +311,10 @@ export default function PosPage() {
             <EmptyState icon={<UtensilsCrossed className="h-8 w-8" />} title={products.length === 0 ? "Your menu is empty" : "Nothing matches"}
               hint={products.length === 0 ? "Add categories and dishes in Setup → Menu, then they appear here." : "Try another category or search."} />
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:[grid-template-columns:repeat(auto-fill,minmax(168px,1fr))]">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:[grid-template-columns:repeat(auto-fill,minmax(max(140px,calc((100%-48px)/4)),1fr))]">
               {tiles.map((x) => (
                 <MenuCard key={x.variant.id} testId={`tile-${x.variant.id}`} name={x.label} image={x.product.image} price={money(x.variant.base_price, currency)}
-                  qty={qtyOfVariant(x.variant.id)} onAdd={() => tapItem(x)} onLess={() => lessVariant(x.variant.id)} />
+                  qty={qtyOfVariant(x.variant.id)} onAdd={() => tapItem(x)} />
               ))}
             </div>
           )}

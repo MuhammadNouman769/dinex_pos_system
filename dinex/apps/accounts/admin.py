@@ -10,7 +10,7 @@ class CustomUserAdmin(UserAdmin):
     fieldsets = (
         *UserAdmin.fieldsets,
         (
-            "MN Kitchen POS",
+            "DineX by XverLabs",
             {
                 "fields": (
                     "role",
@@ -22,7 +22,7 @@ class CustomUserAdmin(UserAdmin):
     add_fieldsets = (
         *UserAdmin.add_fieldsets,
         (
-            "MN Kitchen POS",
+            "DineX by XverLabs",
             {
                 "fields": (
                     "email",

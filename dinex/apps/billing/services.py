@@ -2,7 +2,7 @@
 Subscription logic for DineX (platform side).
 
 - New restaurants start a free TRIAL. The admin converts them to ACTIVE (first invoice is issued).
-- `run_billing` (daily cron) issues the next invoice at the end of each period, marks unpaid
+- `run_billing` (daily cron) issues the next invoice BILLING_RENEWAL_NOTICE_DAYS (4) before each period ends (due on the renewal day), marks unpaid
   invoices PAST_DUE after the due date and SUSPENDS after a grace period.
 - A SUSPENDED / CANCELLED / expired-trial restaurant becomes READ-ONLY (it can still log in and
   look at its data, but cannot change anything) until the admin reactivates it.
@@ -97,19 +97,22 @@ def status_info(organization):
     if sub.status == S.TRIAL and sub.trial_ends_at:
         days_left = max(0, (sub.trial_ends_at - now).days + (1 if (sub.trial_ends_at - now).days >= 0 else 0))
     amount_due = sum((i.amount for i in due), Decimal("0"))
+    next_due = due.order_by("due_date").first()
     if reason:
         message = reason + " Open Billing, pay and send the transaction ID to continue."
     elif sub.status == S.PAST_DUE:
         message = "Your payment is overdue. Please pay to avoid suspension."
     elif days_left is not None and days_left <= 5:
         message = f"Your free trial ends in {days_left} day{'s' if days_left != 1 else ''}."
+    elif sub.status == S.ACTIVE and next_due is not None:
+        message = f"Your next DineX bill of PKR {next_due.amount:,.0f} is due on {next_due.due_date:%d %b %Y}. Open Billing to pay and send the transaction ID."
     else:
         message = ""
     return {
         "status": sub.status, "plan": {"code": sub.plan.code, "name": sub.plan.name, "max_locations": sub.plan.max_locations, "max_users": sub.plan.max_users},
         "price": sub.price, "trial_ends_at": sub.trial_ends_at, "days_left": days_left,
         "current_period_end": sub.current_period_end, "blocked": reason is not None, "message": message,
-        "invoices_due": due.count(), "amount_due": amount_due,
+        "invoices_due": due.count(), "amount_due": amount_due, "next_due_date": next_due.due_date if next_due else None,
     }
 
 
@@ -275,10 +278,12 @@ def run_billing(today=None):
     result = {"invoiced": 0, "past_due": 0, "suspended": 0}
 
     for sub in Subscription.objects.filter(status__in=[S.ACTIVE, S.PAST_DUE], current_period_end__isnull=False,
-                                           current_period_end__lte=today).select_related("organization", "plan"):
+                                           current_period_end__lte=today + timedelta(days=settings.BILLING_RENEWAL_NOTICE_DAYS)).select_related("organization", "plan"):
         start = sub.current_period_end
         if not Invoice.objects.filter(subscription=sub, period_start=start).exclude(status=Invoice.Status.VOID).exists() and sub.price > 0:
-            create_invoice(sub, start, add_months(start), due_date=today + timedelta(days=settings.BILLING_INVOICE_DUE_DAYS))
+            # Issued a few days BEFORE the month ends so the restaurant can pay in time; due on the renewal day.
+            due = start if start > today else today + timedelta(days=settings.BILLING_INVOICE_DUE_DAYS)
+            create_invoice(sub, start, add_months(start), due_date=due)
             result["invoiced"] += 1
 
     for sub in Subscription.objects.filter(status__in=[S.ACTIVE, S.PAST_DUE]).select_related("organization"):

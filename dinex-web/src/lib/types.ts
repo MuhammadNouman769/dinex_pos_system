@@ -116,7 +116,7 @@ export type SubStatus = "TRIAL" | "ACTIVE" | "PAST_DUE" | "SUSPENDED" | "CANCELL
 export interface SubscriptionInfo {
   status: SubStatus; plan: { code: string; name: string; max_locations: number; max_users: number };
   price: Money; trial_ends_at: string | null; days_left: number | null; current_period_end: string | null;
-  blocked: boolean; message: string; invoices_due: number; amount_due: Money;
+  blocked: boolean; message: string; invoices_due: number; amount_due: Money; next_due_date?: string | null;
 }
 export interface PlanRow { id: number; code: string; name: string; description: string; price_monthly: Money; max_locations: number; max_users: number; features: string[]; is_active: boolean; sort_order: number; restaurants: number }
 export interface InvoiceRow { id: number; number: string; organization: number; organization_name: string; period_start: string; period_end: string; amount: Money; status: "DUE" | "PAID" | "VOID"; issued_at: string; due_date: string; paid_at: string | null; method: string; reference: string; note: string; overdue: boolean }

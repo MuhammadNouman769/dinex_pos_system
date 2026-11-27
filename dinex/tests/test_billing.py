@@ -229,12 +229,29 @@ class DailyBilling(BillingBase):
         services.mark_paid(inv, self.platform, "cash")
         return self.sub()
 
-    def test_next_invoice_is_issued_once_when_the_period_ends(self):
+    def test_next_invoice_is_issued_once_a_few_days_before_the_period_ends(self):
         sub = self.active()
-        self.assertEqual(services.run_billing(today=sub.current_period_end - timedelta(days=1))["invoiced"], 0)
-        self.assertEqual(services.run_billing(today=sub.current_period_end)["invoiced"], 1)
-        self.assertEqual(services.run_billing(today=sub.current_period_end)["invoiced"], 0)     # idempotent
+        end = sub.current_period_end
+        self.assertEqual(services.run_billing(today=end - timedelta(days=5))["invoiced"], 0)       # too early
+        self.assertEqual(services.run_billing(today=end - timedelta(days=4))["invoiced"], 1)       # 4 days before
+        self.assertEqual(services.run_billing(today=end - timedelta(days=1))["invoiced"], 0)       # idempotent
         self.assertEqual(Invoice.objects.filter(organization=self.org_a, status="DUE").count(), 1)
+        inv = Invoice.objects.get(organization=self.org_a, status="DUE")
+        self.assertEqual(inv.due_date, end)                                                         # due on the renewal day
+
+    def test_banner_tells_the_restaurant_about_the_coming_bill_and_paying_clears_it(self):
+        sub = self.active()
+        end = sub.current_period_end
+        self.assertEqual(services.status_info(self.org_a)["message"], "")
+        services.run_billing(today=end - timedelta(days=4))
+        info = services.status_info(self.org_a)
+        self.assertIn("next DineX bill", info["message"])
+        self.assertEqual(str(info["next_due_date"]), str(end))
+        inv = Invoice.objects.get(organization=self.org_a, status="DUE")
+        services.mark_paid(inv, None, "BANK", "TID1")
+        self.assertEqual(services.status_info(self.org_a)["message"], "")
+        self.assertEqual(self.sub().status, "ACTIVE")
+        self.assertEqual(services.run_billing(today=end)["invoiced"], 0)                            # no double invoice
 
     def test_overdue_then_suspended_then_paid_reactivates(self):
         sub = self.active()

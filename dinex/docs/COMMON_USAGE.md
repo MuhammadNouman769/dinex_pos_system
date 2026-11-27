@@ -1,6 +1,6 @@
 # Common App
 
-The `common` app contains reusable components shared across the MN Kitchen POS backend.
+The `common` app contains reusable components shared across the DineX backend.
 
 It should contain only generic functionality and should not contain business-specific
 models or logic.

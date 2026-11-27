@@ -1,6 +1,6 @@
 """
 Django settings for core project.
-MN Kitchen POS Backend
+DineX Backend (XverLabs)
 """
 from datetime import timedelta
 from pathlib import Path
@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     # -------------------------------------------------------------------------
     "rest_framework",
     "drf_spectacular",
+    "drf_spectacular_sidecar",   # Swagger UI files served locally (no internet/CDN needed)
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     # -------------------------------------------------------------------------
@@ -215,9 +216,7 @@ REST_FRAMEWORK = {
     # -------------------------------------------------------------------------
     # OpenAPI
     # -------------------------------------------------------------------------
-    "DEFAULT_SCHEMA_CLASS": (
-        "drf_spectacular.openapi.AutoSchema"
-    ),
+    "DEFAULT_SCHEMA_CLASS": "core.openapi.DineXAutoSchema",
     # -------------------------------------------------------------------------
     # JWT Authentication
     # -------------------------------------------------------------------------
@@ -287,14 +286,24 @@ SIMPLE_JWT = {
 # DRF SPECTACULAR / SWAGGER
 # =============================================================================
 SPECTACULAR_SETTINGS = {
-    "TITLE": "The MN Kitchen POS API",
+    "TITLE": "DineX API",
     "DESCRIPTION": (
-        "REST API for The MN Kitchen POS "
-        "restaurant management and "
-        "point-of-sale system."
+        "REST API of DineX by XverLabs: restaurant POS, "
+        "kitchen, inventory, staff, payroll, loyalty and billing. "
+        "Sign in with POST /api/v1/auth/token/, then press Authorize and paste the access token."
     ),
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "SWAGGER_UI_DIST": "SIDECAR",
+    "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
+    "REDOC_DIST": "SIDECAR",
+    "SWAGGER_UI_SETTINGS": {"persistAuthorization": True, "displayRequestDuration": True, "tryItOutEnabled": True},
+    "ENUM_NAME_OVERRIDES": {
+        "PlatformUserRoleEnum": "core.enums.PLATFORM_USER_ROLES",
+        "OrganizationRoleEnum": "core.enums.ORGANIZATION_ROLES",
+        "BranchRoleEnum": "core.enums.BRANCH_ROLES",
+        "StaffRoleEnum": "core.enums.STAFF_ROLES",
+    },
     # -------------------------------------------------------------------------
     # API Tags
     # -------------------------------------------------------------------------
@@ -379,6 +388,7 @@ TERMS_VERSION = config("TERMS_VERSION", default="2026-11")
 BILLING_TRIAL_DAYS = config("BILLING_TRIAL_DAYS", default=14, cast=int)
 BILLING_INVOICE_DUE_DAYS = config("BILLING_INVOICE_DUE_DAYS", default=7, cast=int)
 BILLING_GRACE_DAYS = config("BILLING_GRACE_DAYS", default=7, cast=int)   # overdue this long -> suspended
+BILLING_RENEWAL_NOTICE_DAYS = config("BILLING_RENEWAL_NOTICE_DAYS", default=4, cast=int)   # next month's invoice is issued this many days BEFORE the period ends
 
 
 # ----------------------------------------------------------------------------

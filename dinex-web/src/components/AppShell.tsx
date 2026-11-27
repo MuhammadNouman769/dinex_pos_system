@@ -108,21 +108,21 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar */}
         <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-line/70 bg-bg/80 px-4 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] backdrop-blur-md md:px-8">
-          <div className="flex items-center gap-3 lg:hidden"><Logo className="h-8 w-8" /><span className="font-display font-extrabold">DineX</span></div>
+          <div className="flex items-center gap-3 lg:hidden"><Logo className="h-8 w-8" /><span className="hidden font-display font-extrabold min-[420px]:inline">DineX</span></div>
           <div className="hidden min-w-0 lg:block">
             <p className="truncate text-sm font-semibold">{me.organization?.name ?? "XverLabs Platform"}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
             {me.organization && <SyncPill />}
             {me.locations.length > 0 && (
-              <label className="flex min-h-[40px] items-center gap-2 rounded-xl border border-line bg-surface px-3 text-sm shadow-sm">
+              <label className="flex min-h-[40px] min-w-0 items-center gap-2 rounded-xl border border-line bg-surface px-2.5 text-sm shadow-sm sm:px-3">
                 <MapPin className="h-4 w-4 text-brand" />
                 {me.locations.length > 1 ? (
                   <select aria-label="Location" value={location?.id} onChange={(e) => setLocationId(Number(e.target.value))}
-                    className="bg-transparent pr-1 font-medium focus:outline-none">
+                    className="min-w-0 max-w-[6.5rem] truncate bg-transparent pr-1 font-medium focus:outline-none sm:max-w-none">
                     {me.locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                   </select>
-                ) : <span className="max-w-[7rem] truncate whitespace-nowrap font-medium sm:max-w-none">{location?.name}</span>}
+                ) : <span className="max-w-[5.5rem] truncate whitespace-nowrap font-medium sm:max-w-none">{location?.name}</span>}
               </label>
             )}
             <button onClick={() => setAccount(true)} aria-label="My account" data-testid="account-btn" className="grid h-10 w-10 place-items-center rounded-xl border border-line bg-surface text-sm font-bold text-brand shadow-sm hover:bg-sunken">{(me.first_name || me.username)[0]?.toUpperCase()}</button>

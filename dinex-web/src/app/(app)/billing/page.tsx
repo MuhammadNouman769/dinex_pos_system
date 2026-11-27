@@ -14,7 +14,7 @@ interface Data {
 
 function CopyBtn({ text }: { text: string }) {
   const toast = useToast();
-  return <button type="button" aria-label="Copy" onClick={() => { navigator.clipboard?.writeText(text).then(() => toast.ok("Copied"), () => toast.err("Could not copy")); }} className="grid h-10 w-10 place-items-center rounded-lg text-muted hover:bg-sunken hover:text-ink"><Copy className="h-4 w-4" /></button>;
+  return <button type="button" aria-label="Copy" onClick={() => { navigator.clipboard?.writeText(text).then(() => toast.ok("Copied"), () => toast.err("Could not copy")); }} className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-muted hover:bg-sunken hover:text-ink"><Copy className="h-4 w-4" /></button>;
 }
 
 export default function BillingPage() {
@@ -133,7 +133,7 @@ export default function BillingPage() {
                 {d.payment_accounts.map((a) => (
                   <li key={a.id} className="rounded-2xl border border-line bg-sunken/60 p-4">
                     <div className="flex items-center justify-between gap-2"><b>{a.method_label}{a.bank_name ? ` · ${a.bank_name}` : ""}</b><Badge>{a.account_title}</Badge></div>
-                    <div className="mt-1 flex items-center justify-between gap-2"><span className="num text-lg font-bold tracking-wide">{a.account_number}</span><CopyBtn text={a.account_number} /></div>
+                    <div className="mt-1 flex items-center justify-between gap-2"><span className="num min-w-0 break-all text-base font-bold tracking-wide sm:text-lg">{a.account_number}</span><CopyBtn text={a.account_number} /></div>
                     {a.instructions && <p className="mt-1 text-xs text-muted">{a.instructions}</p>}
                   </li>
                 ))}

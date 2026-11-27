@@ -87,7 +87,7 @@ export default function LoginPage() {
           </form>
           <div className="mt-8 rounded-2xl border border-line bg-surface p-4 text-center text-sm shadow-card">
             <p className="text-muted">New restaurant?</p>
-            <Link href="/" className="mt-0.5 inline-block font-semibold text-brand hover:underline">Start your 14-day free trial</Link>
+            <Link href="/start" className="mt-0.5 inline-block font-semibold text-brand hover:underline">Start your 14-day free trial</Link>
           </div>
         </div>
       </section>

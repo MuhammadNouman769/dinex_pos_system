@@ -1,4 +1,5 @@
 from django.db import transaction
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.organizations.models import (
@@ -19,9 +20,11 @@ class LocationMembershipSerializer(serializers.ModelSerializer):
         fields = ["id", "location", "user", "role", "is_active", "joined_at"]
         read_only_fields = fields
 
+    @extend_schema_field({"type": "object", "properties": {"id": {"type": "integer"}, "name": {"type": "string"}}})
     def get_location(self, obj):
         return {"id": obj.location_id, "name": obj.location.name}
 
+    @extend_schema_field({"type": "object", "properties": {"id": {"type": "integer"}, "username": {"type": "string"}, "email": {"type": "string"}, "first_name": {"type": "string"}, "last_name": {"type": "string"}}})
     def get_user(self, obj):
         user = obj.organization_membership.user
         return {

@@ -18,16 +18,17 @@ from rest_framework_simplejwt.views import (
     ),
     examples=[
         OpenApiExample(
-            name="Platform Login",
-            summary="Platform user login",
-            description=(
-                "Login using a platform account "
-                "created through Django Admin."
-            ),
-            value={
-                "username": "platform",
-                "password": "Platform@12345",
-            },
+            name="XverLabs admin",
+            summary="DineX Admin (platform) login",
+            description="Demo admin created by: python manage.py seed_demo",
+            value={"username": "xverlabs", "password": "DineX@2026"},
+            request_only=True,
+        ),
+        OpenApiExample(
+            name="Restaurant owner",
+            summary="Demo restaurant owner login",
+            description="Karachi Grill owner created by: python manage.py seed_demo",
+            value={"username": "karachigrill", "password": "Demo@12345"},
             request_only=True,
         ),
     ],
