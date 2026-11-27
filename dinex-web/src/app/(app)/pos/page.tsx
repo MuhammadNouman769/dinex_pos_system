@@ -195,7 +195,8 @@ export default function PosPage() {
   if (loading) return <Spinner label="Loading menu…" />;
 
   const cartPanel = (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="scroll-thin -mx-1 min-h-0 flex-1 overflow-y-auto px-1">
       <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-sunken p-1">
         {TYPES.map((x) => (
           <button key={x.id} onClick={() => setType(x.id)} className={cn("min-h-[44px] rounded-lg text-sm font-semibold transition", type === x.id ? "bg-surface text-brand shadow-sm" : "text-muted hover:text-ink")}>{x.label}</button>
@@ -232,7 +233,7 @@ export default function PosPage() {
         {type === "DELIVERY" && <Textarea rows={2} placeholder="Delivery address" value={address} onChange={(e) => setAddress(e.target.value)} />}
       </div>
 
-      <div className="scroll-thin -mx-1 mt-3 min-h-[120px] flex-1 space-y-2 overflow-y-auto px-1">
+      <div className="mt-3 min-h-[100px] space-y-2">
         {cart.length === 0 ? (
           <div className="grid h-full place-items-center py-10 text-center text-sm text-muted"><div><ShoppingBag className="mx-auto mb-2 h-8 w-8 opacity-50" />Tap a dish to start the order</div></div>
         ) : cart.map((l) => (
@@ -262,9 +263,13 @@ export default function PosPage() {
         {t.service > 0 && <Row label={`Service charge (${Number(location?.service_charge_rate)}%)`} value={money(t.service, currency)} />}
         {t.tax > 0 && <Row label={`Tax (${Number(location?.tax_rate)}%)`} value={money(t.tax, currency)} />}
         {t.discount > 0 && <Row label="Deal discount" value={`− ${money(t.discount, currency)}`} />}
-        <div className="flex items-center justify-between pt-1 text-lg font-bold"><span>Total</span><span className="num">{money(t.total, currency)}</span></div>
-        <Input placeholder="Order note (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} />
+                <Input placeholder="Order note (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} />
         <label className="flex cursor-pointer items-center justify-between text-xs text-muted"><span className="flex items-center gap-1.5"><ChefHat className="h-3.5 w-3.5" />Auto-print kitchen ticket</span><input type="checkbox" checked={autoKot} onChange={toggleAuto} data-testid="auto-kot" className="h-4 w-4 accent-[rgb(var(--brand))]" /></label>
+      </div>
+      </div>
+
+      <div className="mt-2 shrink-0 space-y-1.5 border-t border-line pt-2">
+<div className="flex items-center justify-between pt-1 text-lg font-bold"><span>Total</span><span className="num">{money(t.total, currency)}</span></div>
         {problem && cart.length > 0 && <p className="text-xs text-warn">{problem}</p>}
         <Button size="lg" className="w-full" disabled={!!problem} loading={busy} onClick={place}>{online ? "Send to kitchen" : "Save order"} · {money(t.total, currency)}</Button>
         {!online && <p className="flex items-center gap-1.5 text-xs text-warn"><CloudOff className="h-3.5 w-3.5" />Offline: the order is saved on this device and sent when the internet returns.</p>}
@@ -274,14 +279,14 @@ export default function PosPage() {
 
   return (
     <>
+      <div className="grid gap-6 md:grid-cols-[1fr_320px] xl:grid-cols-[1fr_340px] 2xl:grid-cols-[1fr_380px]">
+        <section className="min-w-0">
       {hasShift === false && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-warn-soft px-4 py-3 text-sm text-warn">
           <span><b>No open shift.</b> You can take orders, but payments need an open shift.</span>
           <Link href="/cash" className="font-semibold underline">Open shift</Link>
         </div>
       )}
-      <div className="grid gap-6 md:grid-cols-[1fr_320px] xl:grid-cols-[1fr_380px]">
-        <section className="min-w-0">
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <div className="relative min-w-[200px] flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
@@ -297,7 +302,7 @@ export default function PosPage() {
           {dealTiles.length > 0 && (
             <div className="mb-6">
               <h2 className="mb-2 flex items-center gap-2 font-display text-base font-extrabold"><Tag className="h-4 w-4 text-accent" />Deals</h2>
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:[grid-template-columns:repeat(auto-fill,minmax(max(140px,calc((100%-48px)/4)),1fr))]">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:[grid-template-columns:repeat(auto-fill,minmax(max(120px,calc((100%-48px)/4)),1fr))]">
                 {dealTiles.map(({ deal, math }) => (
                   <MenuCard key={deal.id} deal testId={`deal-${deal.id}`} name={deal.name} image={deal.image} price={money(math!.price, currency)} strike={money(math!.base, currency)}
                     badge={`Save ${money(math!.discount, currency)}`}
@@ -311,7 +316,7 @@ export default function PosPage() {
             <EmptyState icon={<UtensilsCrossed className="h-8 w-8" />} title={products.length === 0 ? "Your menu is empty" : "Nothing matches"}
               hint={products.length === 0 ? "Add categories and dishes in Setup → Menu, then they appear here." : "Try another category or search."} />
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:[grid-template-columns:repeat(auto-fill,minmax(max(140px,calc((100%-48px)/4)),1fr))]">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:[grid-template-columns:repeat(auto-fill,minmax(max(120px,calc((100%-48px)/4)),1fr))]">
               {tiles.map((x) => (
                 <MenuCard key={x.variant.id} testId={`tile-${x.variant.id}`} name={x.label} image={x.product.image} price={money(x.variant.base_price, currency)}
                   qty={qtyOfVariant(x.variant.id)} onAdd={() => tapItem(x)} />
@@ -320,14 +325,14 @@ export default function PosPage() {
           )}
         </section>
 
-        <aside className="hidden md:block"><Card className="sticky top-20 h-[calc(100vh-13rem)] p-4 lg:h-[calc(100vh-7rem)]">{cartPanel}</Card></aside>
+        <aside className="hidden md:block"><Card className="sticky top-20 h-[calc(100dvh-6.5rem)] overflow-hidden p-4">{cartPanel}</Card></aside>
       </div>
 
       {/* Mobile cart bar */}
       <div className="fixed inset-x-0 bottom-[calc(4.6rem+env(safe-area-inset-bottom))] z-20 px-4 md:hidden">
         {count > 0 && <Button size="lg" className="w-full shadow-pop" onClick={() => setCartOpen(true)}><ShoppingBag className="h-5 w-5" />View order · {count} item{count > 1 ? "s" : ""} · {money(t.total, currency)}</Button>}
       </div>
-      <Modal open={cartOpen} onClose={() => setCartOpen(false)} title="Current order" width="max-w-md"><div className="h-[70vh]">{cartPanel}</div></Modal>
+      <Modal open={cartOpen} onClose={() => setCartOpen(false)} title="Current order" width="max-w-md"><div className="h-[70dvh]">{cartPanel}</div></Modal>
 
       <Modal open={!!done} onClose={() => setDone(null)} title={done?.kind === "local" ? "Saved on this device" : "Order sent to kitchen"} width="max-w-sm">
         {done?.kind === "server" && (

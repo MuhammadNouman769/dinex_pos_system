@@ -74,29 +74,29 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen">
       {/* Sidebar (desktop) */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-side text-side-ink lg:flex lg:w-[17rem]">
-        <div className="flex items-center gap-3 px-6 py-7">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-side text-side-ink lg:flex lg:w-[4.75rem] 2xl:w-[17rem]">
+        <div className="flex items-center justify-center gap-3 px-3 py-6 2xl:justify-start 2xl:px-6 2xl:py-7">
           <Logo className="h-10 w-10" />
-          <div>
+          <div className="hidden 2xl:block">
             <p className="font-display text-xl font-extrabold leading-none tracking-tight text-white">DineX</p>
             <p className="mt-1 text-xs opacity-60">{platform ? "Admin" : "by XverLabs"}</p>
           </div>
         </div>
-        <nav className="scroll-thin flex-1 space-y-0.5 overflow-y-auto px-3 pb-4">
+        <nav className="scroll-thin flex-1 space-y-0.5 overflow-y-auto px-2 pb-4 2xl:px-3">
           {nav.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href}
-              aria-current={isActive(href) ? "page" : undefined}
-              className={cn("group relative flex min-h-[44px] items-center gap-3 rounded-xl px-3 text-sm font-medium transition",
+              aria-current={isActive(href) ? "page" : undefined} title={label} aria-label={label}
+              className={cn("group relative flex min-h-[44px] items-center justify-center gap-3 rounded-xl px-0 text-sm font-medium transition 2xl:justify-start 2xl:px-3",
                 isActive(href) ? "bg-side-hover text-white" : "text-side-ink/80 hover:bg-side-hover/70 hover:text-white")}>
               {isActive(href) && <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-accent" />}
-              <Icon className={cn("h-[18px] w-[18px]", isActive(href) && "text-accent")} />{label}
+              <Icon className={cn("h-[18px] w-[18px]", isActive(href) && "text-accent")} /><span className="hidden 2xl:inline">{label}</span>
             </Link>
           ))}
         </nav>
-        <div className="border-t border-white/10 p-4">
-          <div className="flex items-center gap-3">
+        <div className="border-t border-white/10 p-2 2xl:p-4">
+          <div className="flex flex-col items-center gap-2 2xl:flex-row 2xl:gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-full bg-brand-gradient text-sm font-bold text-white">{initials}</div>
-            <div className="min-w-0 flex-1">
+            <div className="hidden min-w-0 flex-1 2xl:block">
               <p className="truncate text-sm font-semibold text-white">{me.first_name || me.username}</p>
               <p className="truncate text-xs opacity-60">{me.is_owner ? "Owner" : location?.role === "MANAGER" ? "Manager" : me.organization ? "Cashier" : "XverLabs"}</p>
             </div>

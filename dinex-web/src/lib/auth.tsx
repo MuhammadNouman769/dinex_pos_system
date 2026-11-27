@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { api, tokens } from "./api";
+import { api, ApiError, tokens } from "./api";
 import type { LocationInfo, Me } from "./types";
 
 interface AuthState {
@@ -23,16 +23,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [locationId, setLocId] = useState<number | null>(null);
 
-  const reload = useCallback(async () => {
-    if (!tokens.access) { setMe(null); setLoading(false); return; }
-    try {
-      setMe(await api.get<Me>("/auth/me/"));
-    } catch {
-      setMe(null);
-    } finally {
-      setLoading(false);
+  const loadMe = useCallback(async (): Promise<boolean> => {
+    if (!tokens.access) { setMe(null); setLoading(false); return false; }
+    // Only a real "not signed in" answer (401/403) may send the user back to the login page.
+    // A slow or busy server (network error, 429, 5xx, "database is locked") is retried instead, so a hiccup never looks like a logout.
+    const wait = [0, 800, 2000, 4000];
+    for (let i = 0; i < wait.length; i++) {
+      if (wait[i]) await new Promise((r) => setTimeout(r, wait[i]));
+      try {
+        setMe(await api.get<Me>("/auth/me/"));
+        setLoading(false);
+        return true;
+      } catch (e) {
+        const st = e instanceof ApiError ? e.status : 0;
+        if (st === 401 || st === 403 || !tokens.access) { setMe(null); setLoading(false); return false; }
+      }
     }
+    setLoading(false);   // still unreachable: keep the saved login (tokens stay), the next screen load tries again
+    return false;
   }, []);
+  const reload = useCallback(async () => { await loadMe(); }, [loadMe]);
 
   useEffect(() => {
     const saved = Number(localStorage.getItem(LOC_KEY));
@@ -47,8 +57,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const t = await api.post<{ access: string; refresh: string }>("/auth/token/", { username, password });
     tokens.set(t.access, t.refresh);
     setLoading(true);
-    await reload();
-  }, [reload]);
+    if (!(await loadMe())) throw new ApiError(0, "Could not load your account. Please press Sign in again.", null);
+  }, [loadMe]);
 
   const logout = useCallback(() => { tokens.clear(); setMe(null); }, []);
 

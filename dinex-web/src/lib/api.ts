@@ -49,22 +49,27 @@ export function messageFrom(data: unknown, fallback = "Something went wrong."): 
 /** "ok" = new token, "denied" = the server refused it (log out), "network" = could not reach the server (stay logged in). */
 type Refresh = "ok" | "denied" | "network";
 let refreshing: Promise<Refresh> | null = null;
+/** Refresh tokens are single-use (the server rotates them). Two tabs of the same browser share one login, so only one tab may renew at a time. */
+function exclusive<T>(fn: () => Promise<T>): Promise<T> {
+  const locks = typeof navigator !== "undefined" ? (navigator as Navigator & { locks?: LockManager }).locks : undefined;
+  return locks ? (locks.request("dinex-refresh", fn) as unknown as Promise<T>) : fn();
+}
 async function refreshAccess(): Promise<Refresh> {
-  if (!tokens.refresh) return "denied";
-  refreshing ??= fetch(`${BASE}/auth/token/refresh/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh: tokens.refresh }),
-  })
-    .then(async (r): Promise<Refresh> => {
+  const wanted = tokens.refresh;
+  if (!wanted) return "denied";
+  refreshing ??= exclusive<Refresh>(async () => {
+    const sent = tokens.refresh;
+    if (!sent) return "denied";
+    if (sent !== wanted) return "ok";                 // another tab already renewed while we waited
+    try {
+      const r = await fetch(`${BASE}/auth/token/refresh/`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ refresh: sent }) });
       if (r.status >= 500) return "network";
-      if (!r.ok) return "denied";
+      if (!r.ok) return tokens.refresh && tokens.refresh !== sent ? "ok" : "denied";   // refused, but another tab may have just saved a new one
       const d = await r.json();
       tokens.set(d.access, d.refresh);
       return "ok";
-    })
-    .catch((): Refresh => "network")
-    .finally(() => { refreshing = null; });
+    } catch { return "network"; }
+  }).finally(() => { refreshing = null; });
   return refreshing;
 }
 
